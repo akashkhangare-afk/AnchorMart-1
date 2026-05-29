@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AnchorMart — Admin Control Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&family=Nunito+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div class="login-screen" id="ls">
+  <div class="lbg">
+    <div class="lbg-grid"></div>
+    <div class="lbg-dots"></div>
+    <div class="lbg-blob b1"></div>
+    <div class="lbg-blob b2"></div>
+    <div class="lbg-blob b3"></div>
+  </div>
+  <div class="login-card">
+    <div class="login-hero">
+      <div class="lh-logo">
+        <div class="lh-logomark"><i class="ti ti-anchor"></i></div>
+        <div>
+          <div class="lh-brand">AnchorMart<span>Maritime Supply Chain</span></div>
+        </div>
+      </div>
+      <div class="lh-headline">The command<br>bridge for your<br>maritime ops.</div>
+      <div class="lh-desc">Complete visibility across sailor orders, delivery partner operations, inventory, and real-time port logistics.</div>
+      <div class="lh-stats">
+        <div class="lh-stat"><div class="lh-stat-val">2,847</div><div class="lh-stat-lbl">Active Sailors</div></div>
+        <div class="lh-stat"><div class="lh-stat-val">64</div><div class="lh-stat-lbl">Delivery Partners</div></div>
+        <div class="lh-stat"><div class="lh-stat-val">96.8%</div><div class="lh-stat-lbl">Success Rate</div></div>
+      </div>
+    </div>
+
+    <div class="login-form">
+      <!-- Step 1: Sign in -->
+      <div id="s-login">
+        <p class="lf-eyebrow">Admin Console</p>
+        <h1 class="lf-title">Welcome back</h1>
+        <p class="lf-sub">Sign in to access the AnchorMart control center.</p>
+        <div class="l-alert err" id="err-banner"><i class="ti ti-alert-circle"></i><span>Invalid email or password. Please try again.</span></div>
+        <div class="fg">
+          <label class="fg-label">Email Address</label>
+          <div class="fi-wrap">
+            <i class="ti ti-mail fi-il"></i>
+            <input id="l-email" type="email" class="fi" placeholder="admin@anchormart.io" value="admin@anchormart.io">
+          </div>
+          <div class="fi-err" id="e-email"><i class="ti ti-alert-circle"></i>Please enter a valid email address.</div>
+        </div>
+        <div class="fg">
+          <label class="fg-label">Password</label>
+          <div class="fi-wrap">
+            <i class="ti ti-lock fi-il"></i>
+            <input id="l-pass" type="password" class="fi" placeholder="Your password" value="password123" onkeydown="if(event.key==='Enter')doLogin()">
+            <button class="fi-ir" onclick="togglePw()" tabindex="-1"><i class="ti ti-eye" id="pw-eye"></i></button>
+          </div>
+          <div class="fi-err" id="e-pass"><i class="ti ti-alert-circle"></i>Password must be at least 6 characters.</div>
+        </div>
+        <div class="l-row">
+          <label class="l-check"><input type="checkbox" checked>&nbsp;Remember me for 30 days</label>
+          <span class="l-link" onclick="showStep('s-forgot')">Forgot password?</span>
+        </div>
+        <button class="l-btn" id="l-btn" onclick="doLogin()">
+          <div class="spin"></div>
+          <span class="lbl"><i class="ti ti-login" style="font-size:17px"></i>&nbsp; Sign In to Console</span>
+        </button>
+        <div class="lf-footer">Need access? <a>Contact your administrator</a></div>
+      </div>
+
+      <!-- Step 2: Forgot password -->
+      <div id="s-forgot" style="display:none">
+        <div class="lf-back" onclick="showStep('s-login')"><i class="ti ti-arrow-left"></i>Back to sign in</div>
+        <h2 class="lf-title">Reset your password</h2>
+        <p class="lf-sub">Enter your admin email — we'll send a reset link.</p>
+        <div class="fg" style="margin-top:28px">
+          <label class="fg-label">Email Address</label>
+          <div class="fi-wrap">
+            <i class="ti ti-mail fi-il"></i>
+            <input type="email" class="fi" placeholder="admin@anchormart.io">
+          </div>
+        </div>
+        <button class="l-btn" onclick="showStep('s-sent')">
+          <span class="lbl"><i class="ti ti-send" style="font-size:17px"></i>&nbsp; Send Reset Link</span>
+        </button>
+      </div>
+
+      <!-- Step 3: Sent -->
+      <div id="s-sent" style="display:none;text-align:center;padding-top:20px">
+        <div class="success-icon"><i class="ti ti-mail-check"></i></div>
+        <h2 class="lf-title" style="text-align:center">Check your inbox</h2>
+        <p style="font-size:13.5px;font-weight:500;color:var(--t3);line-height:1.72;margin-bottom:28px">Reset link sent to <strong>admin@anchormart.io</strong>. Check your inbox and spam folder.</p>
+        <button class="l-btn" onclick="showStep('s-otp')">
+          <span class="lbl"><i class="ti ti-keyboard" style="font-size:17px"></i>&nbsp; Enter OTP Code</span>
+        </button>
+        <p style="font-size:12.5px;font-weight:600;color:var(--t4);margin-top:14px">Didn't receive it? <span class="l-link">Resend email</span></p>
+        <div class="lf-back" style="justify-content:center;margin-top:14px" onclick="showStep('s-login')"><i class="ti ti-arrow-left"></i>Back to sign in</div>
+      </div>
+
+      <!-- Step 4: OTP -->
+      <div id="s-otp" style="display:none;padding-top:8px">
+        <div class="lf-back" onclick="showStep('s-sent')"><i class="ti ti-arrow-left"></i>Back</div>
+        <h2 class="lf-title">Verify your identity</h2>
+        <p class="lf-sub">Enter the 6-digit code sent to your email address.</p>
+        <div class="otp-row" style="margin-top:28px">
+          <input class="otp-input" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-input" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-input" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-input" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-input" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-input" maxlength="1" type="text" inputmode="numeric">
+        </div>
+        <button class="l-btn" onclick="doLogin()">
+          <span class="lbl"><i class="ti ti-shield-check" style="font-size:17px"></i>&nbsp; Verify &amp; Continue</span>
+        </button>
+        <p style="font-size:12.5px;font-weight:600;color:var(--t4);text-align:center;margin-top:14px">Didn't get a code? <span class="l-link">Resend</span></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP SHELL ═══ -->
+<div class="app-shell" id="app">
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-mark"><i class="ti ti-anchor"></i></div>
+      <div>
+        <div class="sb-name">AnchorMart</div>
+        <div class="sb-tag">Admin Center</div>
+      </div>
+    </div>
+    <div class="sb-scroll">
+      <div class="sb-section">Overview</div>
+      <div class="nav-item active" onclick="navigate('dashboard',this)" data-page="dashboard"><i class="ti ti-layout-dashboard"></i>Dashboard<span class="nav-badge success mla">Live</span></div>
+      <div class="nav-item" onclick="navigate('analytics',this)" data-page="analytics"><i class="ti ti-chart-area-line"></i>Analytics</div>
+      <div class="sb-section">Sailors App</div>
+      <div class="nav-item" onclick="navigate('sailors',this)" data-page="sailors"><i class="ti ti-users"></i>Sailors</div>
+      <div class="nav-item" onclick="navigate('orders',this)" data-page="orders"><i class="ti ti-package"></i>Orders<span class="nav-badge mla">12</span></div>
+      <div class="nav-item" onclick="navigate('intents',this)" data-page="intents"><i class="ti ti-file-invoice"></i>Intents<span class="nav-badge warning mla">8</span></div>
+      <div class="nav-item" onclick="navigate('products',this)" data-page="products"><i class="ti ti-box-seam"></i>Products</div>
+      <div class="nav-item" onclick="navigate('express',this)" data-page="express"><i class="ti ti-bolt"></i>Express Items</div>
+      <div class="nav-item" onclick="navigate('rewards',this)" data-page="rewards"><i class="ti ti-star"></i>Rewards &amp; Coupons</div>
+      <div class="sb-section">Delivery App</div>
+      <div class="nav-item" onclick="navigate('partners',this)" data-page="partners"><i class="ti ti-motorbike"></i>Delivery Partners</div>
+      <div class="nav-item" onclick="navigate('assignments',this)" data-page="assignments"><i class="ti ti-clipboard-list"></i>Assignments<span class="nav-badge mla">4</span></div>
+      <div class="nav-item" onclick="navigate('verification',this)" data-page="verification"><i class="ti ti-checklist"></i>Verifications<span class="nav-badge warning mla">3</span></div>
+      <div class="sb-section">Operations</div>
+      <div class="nav-item" onclick="navigate('notifications',this)" data-page="notifications"><i class="ti ti-bell"></i>Notifications<span class="nav-badge mla">5</span></div>
+      <div class="nav-item" onclick="navigate('chat',this)" data-page="chat"><i class="ti ti-messages"></i>Chat Monitor</div>
+      <div class="nav-item" onclick="navigate('support',this)" data-page="support"><i class="ti ti-lifebuoy"></i>Support<span class="nav-badge mla">3</span></div>
+      <div class="nav-item" onclick="navigate('sellers',this)" data-page="sellers"><i class="ti ti-building-store"></i>Seller Requests<span class="nav-badge warning mla">4</span></div>
+      <div class="sb-section">System</div>
+      <div class="nav-item" onclick="navigate('settings',this)" data-page="settings"><i class="ti ti-settings"></i>Settings</div>
+    </div>
+    <div class="sb-footer">
+      <div class="sb-avatar">SA</div>
+      <div style="flex:1;min-width:0">
+        <div class="sb-uname">Super Admin</div>
+        <div class="sb-urole">admin@anchormart.io</div>
+      </div>
+      <div class="sb-logout" onclick="doLogout()" title="Sign out"><i class="ti ti-logout"></i></div>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <div class="topbar-title" id="tb-title">Dashboard</div>
+    <div class="topbar-search">
+      <i class="ti ti-search"></i>
+      <input type="text" placeholder="Search orders, sailors, partners…">
+    </div>
+    <div class="tb-action" title="Notifications"><i class="ti ti-bell"></i><div class="tb-notif-dot"></div></div>
+    <div class="tb-action" title="Refresh data"><i class="ti ti-refresh"></i></div>
+    <div class="tb-action" title="Export"><i class="ti ti-download"></i></div>
+    <div class="tb-status">
+      <div class="live-dot"></div>
+      <span>Port of Singapore · Operational</span>
+    </div>
+  </header>
+
+  <main class="main-content" id="mc"></main>
+</div>
+<!-- ═══ MODAL OVERLAY ═══ -->
+<div class="overlay" id="modal-overlay">
+  <div class="modal-inner"></div>
+</div>
+
+<!-- ═══ DRAWER ═══ -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer"></div>
+
+<!-- ═══ TOAST CONTAINER ═══ -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="js/app.js" defer></script>
+</body>
+</html>
