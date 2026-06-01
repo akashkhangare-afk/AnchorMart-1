@@ -118,6 +118,7 @@ var PAGE_TITLES = {
   intents:      'Intent Requests',
   products:     'Products & Catalog',
   express:      'Express Items',
+  inventory:    'Inventory Dashboard',
   rewards:      'Rewards & Coupons',
   partners:     'Delivery Partners',
   assignments:  'Order Assignments',
@@ -489,34 +490,102 @@ function modalAddProduct(data) {
     icon: 'box-seam', iconBg:'var(--teal-50)', iconColor:'var(--teal-600)',
     size: 'lg',
     body: `
-      <div class="form-row">
-        <div class="fg" style="grid-column:span 2"><label class="fg-label">Product Name</label><input class="form-input" placeholder="e.g. Titan Quartz Analog Watch" value="${data.name||''}"></div>
-      </div>
-      <div class="fg"><label class="fg-label">Description</label><textarea class="form-input" placeholder="Product description…" style="height:70px">${data.desc||''}</textarea></div>
-      <div class="form-row triple">
-        <div class="fg"><label class="fg-label">Category</label><select class="form-select"><option>Electronics</option><option>Fashion</option><option>Beauty</option><option>Fitness</option><option>Marine Emergency</option><option>Living</option><option>Games</option><option>Stationery</option></select></div>
-        <div class="fg"><label class="fg-label">Price ($)</label><input class="form-input" type="number" placeholder="0.00" value="${data.price||''}"></div>
-        <div class="fg"><label class="fg-label">Stock Quantity</label><input class="form-input" type="number" placeholder="0" value="${data.stock||''}"></div>
+      <div class="form-row single">
+        <div class="fg"><label class="fg-label">Product Title</label><input id="pe-title" class="form-input" placeholder="e.g. Titan Quartz Analog Watch" value="${data.name||''}"></div>
       </div>
       <div class="form-row">
-        <div class="fg"><label class="fg-label">SKU / Product ID</label><input class="form-input" placeholder="AM-SKU-001" value="${data.sku||''}"></div>
-        <div class="fg"><label class="fg-label">Weight (grams)</label><input class="form-input" type="number" placeholder="0"></div>
-      </div>
-      <div class="fg">
-        <label class="fg-label">Product Images</label>
-        <div class="upload-area" onclick="document.getElementById('product-images-input').click()">
-          <i class="ti ti-image" style="font-size:24px"></i>
-          <div>Click to add multiple product images</div>
-          <div class="sm c4" style="margin-top:6px">These images will be visible in both mobile apps.</div>
-        </div>
-        <input id="product-images-input" type="file" accept="image/*" multiple style="display:none" onchange="previewProductImages(this)">
-        <div id="product-images-preview" class="image-preview-grid">
-          ${ (data.images||[]).length ? data.images.map(function(img){ return '<div class="image-preview-item" style="background-image:url('+img+')"></div>'; }).join('') : '<div class="empty-state" style="padding:14px 0"><i class="ti ti-image"></i><div class="sm c4">No images selected yet</div></div>' }
+        <div class="fg"><label class="fg-label">Short Description</label><input id="pe-short" class="form-input" placeholder="Short summary for listings" value="${data.short||''}"></div>
+        <div class="fg"><label class="fg-label">Category</label><div style="display:flex;gap:8px"><input id="pe-category" class="form-input" placeholder="Select category" value="${data.category||''}"><button class="btn btn-ghost btn-sm" onclick="openCategoryPicker()">New</button></div></div>
+        <div class="fg"><label class="fg-label">Product Type</label>
+          <div class="pill-toggle" id="pe-type">
+            <div class="pill-btn ${data.type==='physical' || !data.type ? 'active' : ''}" data-type="physical" onclick="selectProductType(this)">Physical</div>
+            <div class="pill-btn ${data.type==='digital' ? 'active' : ''}" data-type="digital" onclick="selectProductType(this)">Digital</div>
+            <div class="pill-btn ${data.type==='service' ? 'active' : ''}" data-type="service" onclick="selectProductType(this)">Service</div>
+            <div class="pill-btn ${data.type==='subscription' ? 'active' : ''}" data-type="subscription" onclick="selectProductType(this)">Subscription</div>
+            <div class="pill-btn ${data.type==='bundle' ? 'active' : ''}" data-type="bundle" onclick="selectProductType(this)">Bundle</div>
+          </div>
         </div>
       </div>
-      <div class="form-row" style="margin-bottom:0">
-        <label class="switch"><input type="checkbox" ${data.featured?'checked':''}><div class="switch-track"></div><span class="switch-label">Featured / Deal Product</span></label>
-        <label class="switch"><input type="checkbox" ${!data.inactive?'checked':''}><div class="switch-track"></div><span class="switch-label">Product Active</span></label>
+      <div class="fg"><label class="fg-label">Product Description</label><div id="pe-desc" contenteditable="true" class="form-input" style="min-height:140px">${data.desc||''}</div></div>
+      <div class="pe-section" style="padding:16px 18px;margin:16px 0;border:1px solid var(--border-sm);border-radius:16px;background:var(--surface-alt)">
+        <h3 style="margin:0 0 10px">Pricing</h3>
+        <div class="form-row triple">
+          <div class="fg"><label class="fg-label">Base Price</label><input id="pe-price" class="form-input" type="number" step="0.01" placeholder="0.00" value="${data.price||''}"></div>
+          <div class="fg"><label class="fg-label">Compare-at Price</label><input id="pe-compare" class="form-input" type="number" step="0.01" placeholder="0.00" value="${data.compare||''}"></div>
+          <div class="fg"><label class="fg-label">Cost Price</label><input id="pe-cost" class="form-input" type="number" step="0.01" placeholder="0.00" value="${data.cost||''}"></div>
+        </div>
+      </div>
+      <div class="pe-section" style="padding:16px 18px;margin:16px 0;border:1px solid var(--border-sm);border-radius:16px;background:var(--surface-alt)">
+        <h3 style="margin:0 0 10px">Inventory</h3>
+        <div class="form-row">
+          <div class="fg"><label class="fg-label">SKU</label><input id="pe-sku" class="form-input" placeholder="Auto-generated or custom" value="${data.sku||''}"><div class="fg-hint">Auto SKU: <span id="pe-sku-sample" class="mono">AM-0001</span> <button class="btn btn-ghost btn-sm" onclick="generateSKU()">Regenerate</button></div></div>
+          <div class="fg"><label class="fg-label">Stock Quantity</label><input id="pe-stock" class="form-input" type="number" placeholder="0" value="${data.stock||''}"></div>
+        </div>
+        <div class="form-row" style="align-items:flex-end; gap:10px; margin-top:10px;">
+          <div class="fg" style="flex:1"><label class="fg-label">Location</label><input id="pe-location-name" class="form-input" placeholder="Warehouse name"></div>
+          <div class="fg" style="flex:1"><label class="fg-label">Stock</label><input id="pe-location-stock" class="form-input" type="number" placeholder="0"></div>
+          <div class="fg" style="flex:0"><button class="btn btn-secondary btn-sm" style="height:40px; margin-top:24px;" onclick="addInventoryLocation()">Add</button></div>
+        </div>
+        <div id="pe-location-list" style="display:grid;gap:10px;margin-top:12px"></div>
+      </div>
+      <div class="pe-section" style="padding:16px 18px;margin:16px 0;border:1px solid var(--border-sm);border-radius:16px;background:var(--surface-alt)">
+        <div class="variant-hdr"><h3 style="margin:0">Variants</h3><div><button class="btn btn-secondary btn-sm" onclick="openVariantModal()"><i class="ti ti-list-check"></i> Manage Variants</button></div></div>
+        <div class="sec-sub" style="margin-top:8px">Add options like size or color, then generate variant combinations.</div>
+        <div class="variant-search" style="margin-top:12px"><input id="pe-variant-search" class="form-input" placeholder="Search variants or add option" onfocus="this.parentElement.classList.add('focus')" onblur="this.parentElement.classList.remove('focus')"></div>
+        <div class="variant-suggestions" id="pe-variant-suggestions" style="margin-top:12px">
+          <span class="tag tag-outline" onclick="setVariantSuggestion('Color')">Color</span>
+          <span class="tag tag-outline" onclick="setVariantSuggestion('Size')">Size</span>
+          <span class="tag tag-outline" onclick="setVariantSuggestion('Material')">Material</span>
+          <span class="tag tag-outline" onclick="setVariantSuggestion('Ring size')">Ring size</span>
+        </div>
+        <div class="variant-card-list" id="pe-variant-card-list"></div>
+        <div class="variant-options" id="pe-variant-options" style="margin-top:12px">
+          <div class="variant-option-row">
+            <input id="pe-variant-option-name" class="form-input" placeholder="Option name (e.g. Color)">
+            <input id="pe-variant-option-values" class="form-input" placeholder="Values, comma separated (e.g. Red,Blue)">
+          </div>
+          <div class="variant-option-actions">
+            <button class="btn btn-secondary btn-sm" onclick="addVariantOption()"><i class="ti ti-plus"></i> Add option</button>
+            <div class="variant-suggestions"><span class="tag tag-outline" onclick="setVariantSuggestion('Color')">Color</span><span class="tag tag-outline" onclick="setVariantSuggestion('Size')">Size</span><span class="tag tag-outline" onclick="setVariantSuggestion('Material')">Material</span><span class="tag tag-outline" onclick="setVariantSuggestion('Ring size')">Ring size</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="pe-section" style="padding:16px 18px;margin:16px 0;border:1px solid var(--border-sm);border-radius:16px;background:var(--surface-alt)">
+        <h3 style="margin:0 0 10px">Shipping & Delivery</h3>
+        <div class="form-row triple">
+          <div class="fg"><label class="fg-label">Weight (kg)</label><input id="pe-weight" class="form-input" type="number" step="0.01" placeholder="0" value="${data.weight||''}"></div>
+          <div class="fg"><label class="fg-label">Dimensions (L×W×H cm)</label><input id="pe-dims" class="form-input" placeholder="e.g. 30×20×12" value="${data.dims||''}"></div>
+          <div class="fg"><label class="fg-label">Shipping Class</label><select id="pe-shipping" class="form-select"><option ${data.shipping==='Standard'?'selected':''}>Standard</option><option ${data.shipping==='Express'?'selected':''}>Express</option><option ${data.shipping==='Freight'?'selected':''}>Freight</option><option ${data.shipping==='Local pickup'?'selected':''}>Local pickup</option></select></div>
+        </div>
+      </div>
+      <div class="pe-section" style="padding:16px 18px;margin:16px 0;border:1px solid var(--border-sm);border-radius:16px;background:var(--surface-alt)">
+        <h3 style="margin:0 0 10px">SEO</h3>
+        <div class="form-row">
+          <div class="fg"><label class="fg-label">Meta Title</label><input id="pe-meta-title" class="form-input" placeholder="Optional SEO title" value="${data.metaTitle||''}"></div>
+          <div class="fg"><label class="fg-label">Meta Description</label><input id="pe-meta-desc" class="form-input" placeholder="Optional meta description" value="${data.metaDesc||''}"></div>
+        </div>
+        <div class="seo-snippet" style="margin-top:12px">
+          <div class="seo-title" id="seo-preview-title">Meta title preview</div>
+          <div class="seo-url">anchormart.io/products/sea-smart-speaker</div>
+          <div class="seo-desc" id="seo-preview-desc">Meta description preview. Keep it concise and keyword rich for search results.</div>
+        </div>
+      </div>
+      <div class="pe-section" style="padding:16px 18px;margin:16px 0;border:1px solid var(--border-sm);border-radius:16px;background:var(--surface-alt)">
+        <h3 style="margin:0 0 10px">Metadata & Custom Attributes</h3>
+        <div class="form-row">
+          <div class="fg"><label class="fg-label">Attribute name</label><input id="pe-attr-key" class="form-input" placeholder="e.g. Color" value="${data.attrKey||''}"></div>
+          <div class="fg"><label class="fg-label">Attribute value</label><input id="pe-attr-value" class="form-input" placeholder="e.g. Ocean Blue" value="${data.attrValue||''}"></div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="addProductAttribute()"><i class="ti ti-plus"></i> Add attribute</button>
+        <div id="pe-attributes-list" class="mt12"></div>
+      </div>
+      <div class="form-row" style="margin-bottom:0;gap:10px;align-items:flex-end">
+        <div class="fg"><label class="fg-label">Status</label><select id="pe-status" class="form-select"><option value="draft" ${data.status==='draft'?'selected':''}>Draft</option><option value="active" ${data.status==='active'?'selected':''}>Active</option><option value="scheduled" ${data.status==='scheduled'?'selected':''}>Scheduled</option><option value="archived" ${data.status==='archived'?'selected':''}>Archived</option></select></div>
+        <div class="fg"><label class="fg-label">Visibility</label><select id="pe-visibility" class="form-select"><option ${data.visibility==='Public'?'selected':''}>Public</option><option ${data.visibility==='Private'?'selected':''}>Private</option><option ${data.visibility==='Hidden'?'selected':''}>Hidden</option></select></div>
+        <div class="fg"><label class="fg-label">Vendor</label><input id="pe-vendor" class="form-input" placeholder="Vendor / Brand" value="${data.vendor||''}"></div>
+      </div>
+      <div class="form-row" style="margin-top:14px;gap:10px;align-items:flex-end">
+        <div class="fg" style="flex:1"><label class="fg-label">Collections</label><input id="pe-collections" class="form-input" placeholder="Add to collections" value="${data.collections||''}"></div>
       </div>
     `,
     footer: '<button class="btn btn-primary" onclick="closeModal();toast(\'' + (data.name?'Product updated':'Product added') + '\',\'success\')"><i class="ti ti-check"></i>' + (data.name?'Save Changes':'Add Product') + '</button>'
@@ -1415,6 +1484,313 @@ PAGES.products = function(c) {
     tr.querySelector('[data-action="del"]').onclick  = function(e){ e.stopPropagation(); showConfirm({title:'Remove Product', msg:'Remove "'+p.n+'"? Cannot be undone.', danger:true, confirmText:'Remove'}, function(){ toast('Product removed', 'danger', 'trash'); }); };
   });
 };
+
+PAGES.inventory = function(c){
+  c.innerHTML = `
+    <div class="pe-top">
+      <div class="pg-header" style="align-items:center;gap:12px">
+        <div class="pg-header-l"><div style="display:flex;flex-direction:column"><div style="font-weight:700">Inventory Dashboard</div><div class="sm c4">Track stock, locations, and low inventory alerts.</div></div></div>
+        <div class="pg-actions" style="gap:8px"><button class="btn btn-secondary" onclick="refreshPage()"><i class="ti ti-refresh"></i> Refresh</button></div>
+      </div>
+    </div>
+    <div class="grid-2 mt16">
+      <div class="card"><div class="card-hd"><div class="card-ttl">In Stock</div></div><div class="card-body"><div style="font-size:28px;font-weight:800;margin-bottom:10px">1,248</div><div class="sm c4">Products ready for fulfillment</div></div></div>
+      <div class="card"><div class="card-hd"><div class="card-ttl">Low Stock</div></div><div class="card-body"><div style="font-size:28px;font-weight:800;margin-bottom:10px">87</div><div class="sm c4">Items below re-order threshold</div></div></div>
+      <div class="card"><div class="card-hd"><div class="card-ttl">Locations</div></div><div class="card-body"><div style="font-size:28px;font-weight:800;margin-bottom:10px">8</div><div class="sm c4">Active storage and pickup points</div></div></div>
+      <div class="card"><div class="card-hd"><div class="card-ttl">Backordered</div></div><div class="card-body"><div style="font-size:28px;font-weight:800;margin-bottom:10px">14</div><div class="sm c4">Products awaiting replenishment</div></div></div>
+    </div>
+    <div class="card mt16">
+      <div class="card-hd"><div class="card-ttl">Stock by Location</div></div>
+      <div class="card-body"><div class="table-responsive"><table><thead><tr><th>Location</th><th>Available</th><th>Reserved</th><th>Last update</th></tr></thead><tbody><tr><td>Bayview Warehouse</td><td>624</td><td>34</td><td>5m ago</td></tr><tr><td>Harbor Fulfillment</td><td>318</td><td>12</td><td>12m ago</td></tr><tr><td>Portside Retail</td><td>176</td><td>8</td><td>18m ago</td></tr><tr><td>Express Locker</td><td>130</td><td>4</td><td>2h ago</td></tr></tbody></table></div></div>
+    </div>
+    <div class="card mt16">
+      <div class="card-hd"><div class="card-ttl">Alert Items</div></div>
+      <div class="card-body"><div class="table-responsive"><table><thead><tr><th>SKU</th><th>Product</th><th>Available</th><th>Threshold</th></tr></thead><tbody><tr><td>AM-01234</td><td>OceanWave Speaker</td><td>9</td><td>15</td></tr><tr><td>AM-04567</td><td>Coastal Charger</td><td>6</td><td>10</td></tr><tr><td>AM-08901</td><td>Port Pro Headphones</td><td>3</td><td>8</td></tr></tbody></table></div></div>
+    </div>
+  `;
+};
+
+function toggleEditorPreview(){
+  var html = document.getElementById('pe-desc').innerHTML;
+  showModal({ title: 'Product Description Preview', size: 'lg', icon: 'eye', body: '<div class="rte-preview">'+html+'</div>', footer: '<button class="btn btn-secondary" onclick="closeModal()">Close</button>' });
+}
+
+function computeSEO(){
+  var descEl = document.getElementById('pe-desc')||{innerText:''};
+  var txt = descEl.innerText || '';
+  var words = txt.trim().split(/\s+/).filter(Boolean).length;
+  var chars = txt.length;
+  var title = (document.getElementById('pe-title')||{value:''}).value || '';
+  var metaTitle = (document.getElementById('pe-meta-title')||{value:''}).value.trim();
+  var metaDesc = (document.getElementById('pe-meta-desc')||{value:''}).value.trim();
+  var score = 0;
+  if (title.length>10 && title.length<70) score += 30;
+  if (words>80) score += 30;
+  if (chars>200) score += 20;
+  var status = score >= 70 ? 'Good' : score >= 40 ? 'Fair' : 'Needs improvement';
+  var seoText = 'SEO: ' + score + '/100 · ' + words + ' words';
+  var el = document.getElementById('rte-seo-score'); if (el) el.textContent = seoText;
+  var previewTitle = document.getElementById('seo-preview-title'); if (previewTitle) previewTitle.textContent = metaTitle || title || 'Meta title preview';
+  var previewDesc = document.getElementById('seo-preview-desc'); if (previewDesc) previewDesc.textContent = metaDesc || (txt.substring(0,160) || 'Meta description preview. Keep it concise and keyword rich for search results.');
+  var seoState = document.getElementById('vc-seo'); if (seoState) seoState.textContent = status;
+}
+
+function computePricing(){
+  var p = parseFloat(document.getElementById('pe-price').value) || 0;
+  var c = parseFloat(document.getElementById('pe-cost').value) || 0;
+  var comp = parseFloat(document.getElementById('pe-compare').value) || 0;
+  var margin = p && c ? ((p - c) / p) * 100 : null;
+  var markup = p && c ? ((p - c) / c) * 100 : null;
+  var txt = [];
+  if (margin !== null) txt.push('Profit margin: ' + margin.toFixed(1) + '%'); else txt.push('Profit margin: —');
+  if (markup !== null) txt.push('Markup: ' + markup.toFixed(1) + '%'); else txt.push('Markup: —');
+  if (comp) txt.push('Compare-at: $' + comp.toFixed(2));
+  var el = document.getElementById('pe-price-meta'); if(el) el.textContent = txt.join(' · ');
+}
+
+function previewEditorMedia(files) {
+  var grid = document.getElementById('pe-media-grid'); if(!grid) return; grid.innerHTML='';
+  files = Array.from(files || []);
+  if (!files.length) { grid.innerHTML='<div class="empty-state"><i class="ti ti-image"></i><div class="sm c4">No media uploaded</div></div>'; updateValidation(); return; }
+  files.slice(0,24).forEach(function(f, idx){
+    var item=document.createElement('div'); item.className='media-item'; item.setAttribute('draggable','true');
+    if (f.type && f.type.startsWith('image/')) {
+      var r=new FileReader(); r.onload=function(e){ item.style.backgroundImage='url('+e.target.result+')'; item.dataset.src = e.target.result; };
+      r.readAsDataURL(f);
+    } else {
+      item.innerHTML='<div style="padding:8px;">'+(f.name||'file')+'</div>';
+      item.dataset.src = f.name || '';
+    }
+    // actions
+    var acts=document.createElement('div'); acts.className='mi-actions'; acts.innerHTML='<button class="btn btn-xs btn-ghost" onclick="this.parentElement.parentElement.remove(); updateValidation();"><i class="ti ti-trash"></i></button>';
+    item.appendChild(acts);
+    // primary toggle on click (excluding action clicks)
+    item.addEventListener('click', function(e){ if (e.target.closest('.mi-actions')) return; var prev = grid.querySelector('.media-item.primary'); if(prev && prev!==item) prev.classList.remove('primary'); item.classList.toggle('primary'); if(item.classList.contains('primary')) item.dataset.primary = '1'; else delete item.dataset.primary; saveProductDraft(); updateValidation(); });
+    // drag handlers
+    item.addEventListener('dragstart', function(e){ item.classList.add('dragging'); window._am_dragEl = item; e.dataTransfer.effectAllowed = 'move'; });
+    item.addEventListener('dragend', function(e){ item.classList.remove('dragging'); window._am_dragEl = null; saveProductDraft(); });
+    grid.appendChild(item);
+  });
+  // dragover reorder
+  grid.addEventListener('dragover', function(e){ e.preventDefault(); var after = getDragAfterElement(grid, e.clientY); var dragEl = window._am_dragEl; if(!dragEl) return; if (!after) grid.appendChild(dragEl); else grid.insertBefore(dragEl, after); });
+  updateValidation();
+}
+
+function openCategoryPicker(){
+  showModal({
+    title: 'Select or Create Category', icon: 'list', size: 'md',
+    body: `
+      <div class="fg"><label class="fg-label">Search categories</label><input id="cat-search" class="form-input" placeholder="Search or create"></div>
+      <div id="cat-list" style="max-height:260px;overflow:auto;padding-top:8px"></div>
+      <div class="fg"><label class="fg-label">Create new category</label><input id="cat-new" class="form-input" placeholder="e.g. Electronics > Audio"></div>
+    `,
+    footer: '<button class="btn btn-secondary" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createCategory()">Create & Select</button>'
+  });
+  renderCategoryList();
+}
+
+function renderCategoryList(){
+  var list = ['Electronics > Audio','Fashion > Men','Home & Living > Furniture','Beauty > Skincare','Grocery > Pantry','Automotive > Parts'];
+  var el = document.getElementById('cat-list'); if(!el) return; el.innerHTML = list.map(function(c){ return '<div class="ecard" style="cursor:pointer;padding:8px" onclick="selectCategory(\''+c.replace(/'/g,'\\\'')+'\')">'+c+'</div>'; }).join('');
+}
+
+function selectCategory(cat){ document.getElementById('pe-category').value = cat; closeModal(); toast('Category selected: ' + cat, 'success'); }
+
+function createCategory(){ var v = document.getElementById('cat-new').value.trim(); if(!v){ toast('Enter a category name','warning'); return; } document.getElementById('pe-category').value = v; closeModal(); toast('Category created: ' + v, 'success'); }
+
+function selectProductType(el){ var siblings = el.parentElement.querySelectorAll('.pill-btn'); siblings.forEach(function(s){ s.classList.remove('active'); }); el.classList.add('active'); var t = el.getAttribute('data-type'); document.getElementById('pe-inventory').style.display = (t==='service' || t==='digital') ? 'none' : ''; }
+
+function generateSKU(){ var s = 'AM-'+Math.floor(Math.random()*90000+10000); document.getElementById('pe-sku').value = s; document.getElementById('pe-sku-sample').textContent = s; }
+
+function addInventoryLocation(){ var name = (document.getElementById('pe-location-name')||{value:''}).value.trim(); var stock = (document.getElementById('pe-location-stock')||{value:'0'}).value.trim(); if(!name){ toast('Enter a location name','warning'); return; } var list = document.getElementById('pe-location-list'); if(!list) return; var item = document.createElement('div'); item.className='inventory-location'; item.dataset.name = name; item.dataset.stock = stock; item.innerHTML = '<div><strong>'+name+'</strong><div class="sm c4">Stock: '+(stock||'0')+'</div></div><button class="btn btn-ghost btn-xs" onclick="removeInventoryLocation(this)">Remove</button>'; list.appendChild(item); document.getElementById('pe-location-name').value=''; document.getElementById('pe-location-stock').value=''; saveProductDraft(); }
+
+function removeInventoryLocation(btn){ var item = btn.closest('.inventory-location'); if(item) item.remove(); saveProductDraft(); }
+
+function addProductAttribute(){ var key = (document.getElementById('pe-attr-key')||{value:''}).value.trim(); var value = (document.getElementById('pe-attr-value')||{value:''}).value.trim(); if(!key || !value){ toast('Attribute name and value required','warning'); return; } var list = document.getElementById('pe-attributes-list'); if(!list) return; var item = document.createElement('div'); item.className='attribute-item'; item.innerHTML = '<div><strong class="attr-key">'+key+'</strong><div class="sm c4 attr-val">'+value+'</div></div><button class="btn btn-ghost btn-xs" onclick="removeProductAttribute(this)">Remove</button>'; list.appendChild(item); document.getElementById('pe-attr-key').value=''; document.getElementById('pe-attr-value').value=''; saveProductDraft(); }
+
+function removeProductAttribute(btn){ var item = btn.closest('.attribute-item'); if(item) item.remove(); saveProductDraft(); }
+
+function renderInventoryLocations(locations){ var list = document.getElementById('pe-location-list'); if(!list) return; list.innerHTML=''; locations.forEach(function(loc){ var item = document.createElement('div'); item.className='inventory-location'; item.dataset.name = loc.name || ''; item.dataset.stock = loc.stock || ''; item.innerHTML = '<div><strong>'+loc.name+'</strong><div class="sm c4">Stock: '+(loc.stock||'0')+'</div></div><button class="btn btn-ghost btn-xs" onclick="removeInventoryLocation(this)">Remove</button>'; list.appendChild(item); }); }
+
+function renderProductAttributes(attrs){ var list = document.getElementById('pe-attributes-list'); if(!list) return; list.innerHTML=''; attrs.forEach(function(attr){ var item = document.createElement('div'); item.className='attribute-item'; item.innerHTML = '<div><strong class="attr-key">'+attr.key+'</strong><div class="sm c4 attr-val">'+attr.value+'</div></div><button class="btn btn-ghost btn-xs" onclick="removeProductAttribute(this)">Remove</button>'; list.appendChild(item); }); }
+
+function scrollWizardTo(id){ var el = document.getElementById(id); if(!el) return; el.scrollIntoView({behavior:'smooth', block:'start'}); }
+
+function saveProductDraft(btn){
+  try {
+    var data = {};
+    data.title = (document.getElementById('pe-title')||{value:''}).value;
+    data.desc = (document.getElementById('pe-desc')||{innerHTML:''}).innerHTML;
+    data.price = (document.getElementById('pe-price')||{value:''}).value;
+    data.cost = (document.getElementById('pe-cost')||{value:''}).value;
+    data.compare = (document.getElementById('pe-compare')||{value:''}).value;
+    data.metaTitle = (document.getElementById('pe-meta-title')||{value:''}).value;
+    data.metaDesc = (document.getElementById('pe-meta-desc')||{value:''}).value;
+    data.category = (document.getElementById('pe-category')||{value:''}).value;
+    data.sku = (document.getElementById('pe-sku')||{value:''}).value;
+    data.status = (document.getElementById('pe-status')||{value:'draft'}).value;
+    // collect media
+    data.media = []; var mediaEls = document.querySelectorAll('#pe-media-grid .media-item'); mediaEls.forEach(function(mi){ data.media.push({ src: mi.dataset.src || '', primary: !!mi.dataset.primary }); });
+    // collect structured variants
+    data.variants = getVariantsFromTable();
+    data.locations = [];
+    document.querySelectorAll('#pe-location-list .inventory-location').forEach(function(li){ data.locations.push({ name: li.dataset.name || '', stock: li.dataset.stock || '' }); });
+    data.attributes = [];
+    document.querySelectorAll('#pe-attributes-list .attribute-item').forEach(function(ai){ var key = ai.querySelector('.attr-key'); var val = ai.querySelector('.attr-val'); data.attributes.push({ key: key ? key.textContent : '', value: val ? val.textContent : '' }); });
+    localStorage.setItem('am_product_draft', JSON.stringify(data));
+    if (btn){ btn.disabled=true; var orig=btn.innerHTML; btn.innerHTML='<i class="ti ti-loader" style="animation:lspin .7s linear infinite"></i> Saving…'; setTimeout(function(){ if(btn){ btn.disabled=false; btn.innerHTML=orig; } toast('Draft saved','success'); var ind = document.getElementById('auto-save-ind'); if(ind) ind.textContent='All changes saved'; },600); }
+    else { var ind = document.getElementById('auto-save-ind'); if(ind) ind.textContent='All changes saved'; }
+  } catch(err){ console.error('saveProductDraft', err); toast('Failed to save draft','error'); }
+}
+
+function publishProduct(btn){
+  if(btn){ btn.disabled=true; var orig=btn.innerHTML; btn.innerHTML='<i class="ti ti-loader" style="animation:lspin .7s linear infinite"></i> Publishing…'; setTimeout(function(){ if(btn){ btn.disabled=false; btn.innerHTML=orig; } // set status and save
+    document.getElementById('pe-status').value='active'; saveProductDraft(); toast('Product published (local)','success'); },1000); }
+}
+
+function loadProductDraft(){
+  try {
+    var raw = localStorage.getItem('am_product_draft'); if(!raw) return;
+    var data = JSON.parse(raw);
+    if (!data) return;
+    if (data.title) document.getElementById('pe-title').value = data.title;
+    if (data.desc) document.getElementById('pe-desc').innerHTML = data.desc;
+    if (data.price) document.getElementById('pe-price').value = data.price;
+    if (data.cost) document.getElementById('pe-cost').value = data.cost;
+    if (data.compare) document.getElementById('pe-compare').value = data.compare;
+    if (data.category) document.getElementById('pe-category').value = data.category;
+    if (data.sku) document.getElementById('pe-sku').value = data.sku;
+    if (data.metaTitle) document.getElementById('pe-meta-title').value = data.metaTitle;
+    if (data.metaDesc) document.getElementById('pe-meta-desc').value = data.metaDesc;
+    if (data.status) document.getElementById('pe-status').value = data.status;
+    if (data.locations && data.locations.length) renderInventoryLocations(data.locations);
+    if (data.attributes && data.attributes.length) renderProductAttributes(data.attributes);
+    if (data.variants && data.variants.length) renderVariants(data.variants);
+    // media
+    var grid = document.getElementById('pe-media-grid'); if(grid && data.media && data.media.length){ grid.innerHTML=''; data.media.forEach(function(m){ var item=document.createElement('div'); item.className='media-item'; item.style.backgroundImage = m.src ? 'url('+m.src+')' : ''; if(m.src) item.dataset.src = m.src; if(m.primary) { item.classList.add('primary'); item.dataset.primary='1'; }
+        var acts=document.createElement('div'); acts.className='mi-actions'; acts.innerHTML='<button class="btn btn-xs btn-ghost" onclick="this.parentElement.parentElement.remove(); updateValidation();"><i class="ti ti-trash"></i></button>'; item.appendChild(acts);
+        item.setAttribute('draggable','true');
+        item.addEventListener('click', function(e){ if (e.target.closest('.mi-actions')) return; var prev = grid.querySelector('.media-item.primary'); if(prev && prev!==item) prev.classList.remove('primary'); item.classList.toggle('primary'); if(item.classList.contains('primary')) item.dataset.primary = '1'; else delete item.dataset.primary; saveProductDraft(); updateValidation(); });
+        item.addEventListener('dragstart', function(e){ item.classList.add('dragging'); window._am_dragEl = item; });
+        item.addEventListener('dragend', function(e){ item.classList.remove('dragging'); window._am_dragEl = null; saveProductDraft(); });
+        grid.appendChild(item);
+    });
+      }
+  } catch(e){ console.warn('loadProductDraft', e); }
+  updateValidation();
+  computePricing();
+  computeSEO();
+}
+
+function getDragAfterElement(container, y) {
+  var draggableElements = [...container.querySelectorAll('.media-item:not(.dragging)')];
+  return draggableElements.reduce(function(closest, child){
+    var box = child.getBoundingClientRect(); var offset = y - box.top - box.height/2; if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; } else { return closest; }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function duplicateProduct(){ toast('Product duplicated','success'); }
+
+function openVariantModal(){
+  var existing = getVariantsFromTable();
+  showModal({
+    title: 'Variant Manager', icon: 'list-check', size: 'lg',
+    body: `
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">Attributes (comma separated)</label><input id="vm-attrs" class="form-input" placeholder="Size, Color, Material"></div>
+        <div class="fg"><label class="fg-label">Values (one per attribute, semicolon separated)</label><input id="vm-values" class="form-input" placeholder="S,M,L; Red,Blue; Cotton,Poly"></div>
+      </div>
+      <div class="fg"><label class="fg-label">Generated Variants</label><div id="vm-list" style="max-height:240px;overflow:auto;border:1px solid var(--border-xs);border-radius:8px;padding:10px;background:var(--surface-alt)">` + (existing.length ? existing.map(function(v){ return '<div style="padding:8px;border-bottom:1px dashed var(--border-xs);font-weight:600">' + v.title + ' · SKU: ' + v.sku + '</div>'; }).join('') : 'No variants yet') + `</div></div>
+    `,
+    footer: '<button class="btn btn-secondary" onclick="closeModal()">Close</button><button class="btn btn-primary" onclick="vmGenerate()"><i class="ti ti-play"></i> Generate</button>'
+  });
+}
+
+function getVariantsFromTable(){
+  var tbody = document.getElementById('pe-variants-body'); if(!tbody) return [];
+  var variants = [];
+  tbody.querySelectorAll('tr').forEach(function(tr){
+    var title = (tr.children[0] || {}).innerText || '';
+    var skuInput = tr.querySelector('input[data-field="sku"]');
+    var priceInput = tr.querySelector('input[data-field="price"]');
+    var stockInput = tr.querySelector('input[data-field="stock"]');
+    var statusSelect = tr.querySelector('select');
+    if (!title || title === 'No variants defined') return;
+    variants.push({
+      title: title,
+      sku: skuInput ? skuInput.value : (tr.children[1] ? tr.children[1].innerText : ''),
+      price: priceInput ? parseFloat(priceInput.value || 0).toFixed(2) : '0.00',
+      stock: stockInput ? parseInt(stockInput.value || 0, 10) : 0,
+      status: statusSelect ? statusSelect.value : 'Draft'
+    });
+  });
+  return variants;
+}
+
+function renderVariants(variants){
+  var tbody = document.getElementById('pe-variants-body'); if(!tbody) return;
+  tbody.innerHTML = '';
+  if (!variants || !variants.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="sm c4">No variants defined</td></tr>';
+    return;
+  }
+  variants.forEach(function(v){
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+v.title+'</td>' +
+      '<td class="mono"><input class="form-input form-input-sm" data-field="sku" value="'+(v.sku||'')+'"></td>' +
+      '<td><input class="form-input form-input-sm" type="number" step="0.01" data-field="price" value="'+(parseFloat(v.price)||0).toFixed(2)+'"></td>' +
+      '<td><input class="form-input form-input-sm" type="number" data-field="stock" value="'+(v.stock||0)+'"></td>' +
+      '<td><select class="form-select form-select-sm"><option'+((v.status||'Draft')==='Active'?' selected':'')+'>Active</option><option'+((v.status||'Draft')==='Draft'?' selected':'')+'>Draft</option><option'+((v.status||'Draft')==='Archived'?' selected':'')+'>Archived</option></select></td>';
+    tr.querySelectorAll('input,select').forEach(function(el){ el.addEventListener('change', saveProductDraft); });
+    tbody.appendChild(tr);
+  });
+}
+
+function vmGenerate(){
+  var attrs = (document.getElementById('vm-attrs').value||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+  var valsRaw = (document.getElementById('vm-values').value||'').split(';').map(function(s){return s.trim();}).filter(Boolean);
+  if (!attrs.length || !valsRaw.length || valsRaw.length !== attrs.length) { toast('Please provide matching attribute values','warning'); return; }
+  var lists = valsRaw.map(function(v){ return v.split(',').map(function(x){return x.trim();}).filter(Boolean); });
+  var combos = [[]];
+  lists.forEach(function(list){ var tmp=[]; combos.forEach(function(c){ list.forEach(function(val){ tmp.push(c.concat([val])); }); }); combos = tmp; });
+  var variants = combos.map(function(c, idx){ return {
+    title: attrs.map(function(a,i){ return a+': '+c[i]; }).join(' / '),
+    sku: 'AMV-'+(1000 + idx),
+    price: parseFloat(document.getElementById('pe-price').value || 0).toFixed(2),
+    stock: parseInt(document.getElementById('pe-stock').value || 0, 10) || 0,
+    status: 'Draft'
+  }; });
+  var list = document.getElementById('vm-list'); if(list){ list.innerHTML = variants.map(function(v){ return '<div style="padding:8px;border-bottom:1px dashed var(--border-xs);font-weight:600">'+v.title+' · SKU: '+v.sku+'</div>'; }).join(''); }
+  renderVariants(variants);
+  closeModal(); toast('Variants generated: ' + variants.length, 'success');
+}
+
+function setVariantSuggestion(value){
+  document.getElementById('pe-variant-option-name').value = value;
+  document.getElementById('pe-variant-option-values').focus();
+}
+
+function addVariantOption(){
+  var name = (document.getElementById('pe-variant-option-name')||{value:''}).value.trim();
+  var values = (document.getElementById('pe-variant-option-values')||{value:''}).value.trim();
+  if (!name || !values) { toast('Enter both option name and values','warning'); return; }
+  var list = document.getElementById('pe-variant-card-list'); if(!list) return;
+  var item = document.createElement('div'); item.className = 'variant-card';
+  item.innerHTML = '<div class="variant-card-head"><div><strong>'+name+'</strong><div class="sm c4">'+values+'</div></div><button class="btn btn-ghost btn-xs" onclick="this.closest(\'.variant-card\').remove(); updateVariantCardState();">Delete</button></div><div class="variant-card-body"><div class="sm c4">Add options like size or color to define inventory variations and pricing.</div></div><div class="variant-card-actions"><button class="btn btn-ghost btn-xs" onclick="this.closest(\'.variant-card\').classList.toggle(\'done\'); this.textContent = this.closest(\'.variant-card\').classList.contains(\'done\') ? \'Done\' : \'Done\';">Done</button></div>';
+  list.appendChild(item);
+  document.getElementById('pe-variant-option-name').value = '';
+  document.getElementById('pe-variant-option-values').value = '';
+  document.getElementById('pe-variant-option-name').focus();
+  updateVariantCardState();
+}
+
+function updateVariantCardState(){
+  var cards = document.querySelectorAll('#pe-variant-card-list .variant-card');
+  var container = document.getElementById('pe-variant-card-list');
+  if(container) container.style.display = cards.length ? '' : 'none';
+}
+
+function updateValidation(){ var title = document.getElementById('pe-title').value.trim(); document.getElementById('vc-title').textContent = title ? 'OK' : 'Missing'; var imgs = document.querySelectorAll('#pe-media-grid .media-item').length; document.getElementById('vc-image').textContent = imgs? 'OK':'Missing'; var price = document.getElementById('pe-price').value; document.getElementById('vc-price').textContent = price? 'OK':'Missing'; var variants = getVariantsFromTable().length; if(document.getElementById('vc-variants')) document.getElementById('vc-variants').textContent = variants ? 'OK' : 'None'; }
 
 /* ─── EXPRESS, REWARDS, PARTNERS, ASSIGNMENTS, VERIFICATION, NOTIFICATIONS, CHAT, SUPPORT, SELLERS, SETTINGS ─── */
 /* These pages have simpler onclick needs - just use goTo() or direct function calls */
