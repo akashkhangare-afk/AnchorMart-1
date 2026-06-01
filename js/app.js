@@ -85,6 +85,28 @@ function doLogout() {
   if (mc) mc.innerHTML = '';
 }
 
+function toggleSidebar() {
+  var app = document.getElementById('app');
+  var btn = document.getElementById('sb-toggle-btn');
+  if (!app || !btn) return;
+  var collapsed = app.classList.toggle('collapsed');
+  btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  btn.firstElementChild.className = collapsed ? 'ti ti-chevron-right' : 'ti ti-chevron-left';
+}
+
+function initSidebarTooltips() {
+  document.querySelectorAll('.nav-item[data-page]').forEach(function(item) {
+    var page = item.dataset.page;
+    var label = PAGE_TITLES[page] || item.textContent.trim();
+    if (label) {
+      item.setAttribute('data-tooltip', label);
+      item.setAttribute('title', label);
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initSidebarTooltips);
+
 /* ════════════════════════════════════════
    NAVIGATION
 ════════════════════════════════════════ */
@@ -480,12 +502,48 @@ function modalAddProduct(data) {
         <div class="fg"><label class="fg-label">SKU / Product ID</label><input class="form-input" placeholder="AM-SKU-001" value="${data.sku||''}"></div>
         <div class="fg"><label class="fg-label">Weight (grams)</label><input class="form-input" type="number" placeholder="0"></div>
       </div>
+      <div class="fg">
+        <label class="fg-label">Product Images</label>
+        <div class="upload-area" onclick="document.getElementById('product-images-input').click()">
+          <i class="ti ti-image" style="font-size:24px"></i>
+          <div>Click to add multiple product images</div>
+          <div class="sm c4" style="margin-top:6px">These images will be visible in both mobile apps.</div>
+        </div>
+        <input id="product-images-input" type="file" accept="image/*" multiple style="display:none" onchange="previewProductImages(this)">
+        <div id="product-images-preview" class="image-preview-grid">
+          ${ (data.images||[]).length ? data.images.map(function(img){ return '<div class="image-preview-item" style="background-image:url('+img+')"></div>'; }).join('') : '<div class="empty-state" style="padding:14px 0"><i class="ti ti-image"></i><div class="sm c4">No images selected yet</div></div>' }
+        </div>
+      </div>
       <div class="form-row" style="margin-bottom:0">
         <label class="switch"><input type="checkbox" ${data.featured?'checked':''}><div class="switch-track"></div><span class="switch-label">Featured / Deal Product</span></label>
         <label class="switch"><input type="checkbox" ${!data.inactive?'checked':''}><div class="switch-track"></div><span class="switch-label">Product Active</span></label>
       </div>
     `,
     footer: '<button class="btn btn-primary" onclick="closeModal();toast(\'' + (data.name?'Product updated':'Product added') + '\',\'success\')"><i class="ti ti-check"></i>' + (data.name?'Save Changes':'Add Product') + '</button>'
+  });
+}
+
+function previewProductImages(input) {
+  var container = document.getElementById('product-images-preview');
+  if (!container) return;
+  var files = input.files ? Array.from(input.files) : [];
+  container.innerHTML = '';
+  if (!files.length) {
+    container.innerHTML = '<div class="empty-state" style="padding:14px 0"><i class="ti ti-image"></i><div class="sm c4">No images selected yet</div></div>';
+    return;
+  }
+  files.slice(0,8).forEach(function(file) {
+    if (!file.type.startsWith('image/')) return;
+    var item = document.createElement('div');
+    item.className = 'image-preview-item';
+    item.innerHTML = '<div class="preview-spinner">Loading…</div>';
+    container.appendChild(item);
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      item.style.backgroundImage = 'url(' + e.target.result + ')';
+      item.innerHTML = '';
+    };
+    reader.readAsDataURL(file);
   });
 }
 
