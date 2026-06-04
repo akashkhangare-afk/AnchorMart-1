@@ -586,7 +586,9 @@ tbody tr:hover td { color: var(--t2); }
 .badge-green   { background: var(--green-bg);   color: var(--green-text);   border-color: var(--green-border); }
 
 /* ── AVATARS ── */
-.av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+.av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; overflow: hidden; }
+.av img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.prod-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
 .av-sm { width: 26px; height: 26px; font-size: 10px; }
 .av-lg { width: 40px; height: 40px; font-size: 15px; }
 .av-xl { width: 52px; height: 52px; font-size: 20px; }
@@ -739,14 +741,37 @@ textarea.form-input { height: auto; padding: 10px 12px; resize: vertical; width:
 .dstep.active { border-color: var(--amber-200); background: var(--warning-bg); }
 
 /* Product thumb */
-.prod-thumb { width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--surface-alt); border: 1px solid var(--border-sm); display: flex; align-items: center; justify-content: center; color: var(--t4); font-size: 18px; flex-shrink: 0; }
+.prod-thumb { width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--surface-alt); border: 1px solid var(--border-sm); display: flex; align-items: center; justify-content: center; color: var(--t4); font-size: 18px; flex-shrink: 0; overflow: hidden; }
 
 /* Stars */
 .stars { color: var(--amber-400); font-size: 12.5px; letter-spacing: 1px; }
 
 /* Upload area */
 .upload-area { border: 2px dashed var(--border-md); border-radius: var(--radius-md); padding: 28px; text-align: center; cursor: pointer; transition: all .2s; color: var(--t4); font-weight: 600; }
-.upload-area:hover { border-color: var(--teal-400); color: var(--teal-600); background: var(--teal-50); }
+.upload-area:hover, .upload-area.drag { border-color: var(--teal-400); color: var(--teal-600); background: var(--teal-50); }
+
+/* ── Product form: rich text, tag input, image grid, variant table ── */
+.rt-toolbar { display:flex; flex-wrap:wrap; gap:2px; border:1.5px solid var(--border-md); border-bottom:none; border-radius:var(--radius-md) var(--radius-md) 0 0; padding:5px; background:var(--surface-alt); }
+.rt-btn { width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border:none; background:transparent; border-radius:var(--radius-sm); cursor:pointer; color:var(--t3); font-size:16px; }
+.rt-btn:hover { background:var(--surface); color:var(--t1); }
+.rt-editor { border:1.5px solid var(--border-md); border-radius:0 0 var(--radius-md) var(--radius-md); min-height:120px; max-height:240px; overflow-y:auto; padding:10px 12px; font-size:13.5px; line-height:1.5; color:var(--t1); outline:none; }
+.rt-editor:focus { border-color:var(--teal-500); box-shadow:var(--sh-focus-teal); }
+.rt-editor table { border-collapse:collapse; margin:6px 0; }
+.rt-editor td { border:1px solid var(--border-md); padding:5px 8px; min-width:48px; }
+.tag-input-wrap { display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1.5px solid var(--border-md); border-radius:var(--radius-md); padding:7px 8px; background:var(--surface-input); }
+.tag-input-wrap input { border:none; outline:none; flex:1; min-width:90px; font-size:13px; font-family:var(--font-body); background:transparent; color:var(--t1); }
+.tag-chip { display:inline-flex; align-items:center; gap:5px; padding:3px 8px; background:var(--navy-50); color:var(--navy-700); border-radius:var(--radius-sm); font-size:12px; font-weight:700; }
+.tag-chip i { cursor:pointer; font-size:13px; opacity:.65; }
+.tag-chip i:hover { opacity:1; }
+.img-prev-grid { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+.img-prev { position:relative; width:86px; height:86px; border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--border-sm); }
+.img-prev img { width:100%; height:100%; object-fit:cover; display:block; }
+.img-prev button { position:absolute; top:3px; right:3px; width:20px; height:20px; border:none; border-radius:50%; background:rgba(15,23,42,.65); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:11px; padding:0; }
+.opt-row { display:flex; gap:10px; align-items:flex-start; margin-bottom:12px; }
+.opt-row .fg { margin-bottom:0; }
+.var-table-wrap { overflow-x:auto; border:1px solid var(--border-sm); border-radius:var(--radius-md); }
+.var-table-wrap table { min-width:880px; }
+.var-table-wrap input { height:32px; font-size:12.5px; padding:0 8px; }
 
 /* Empty state */
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; color: var(--t4); text-align: center; }
@@ -1442,6 +1467,71 @@ function sendChatMsg() {
 /* ════════════════════════════════════════
    GLOBAL EVENT SETUP  (runs on load)
 ════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   MEDIA ENHANCER
+   Swaps initials-avatars → profile photos and
+   product-thumbnail icons → product images.
+   Falls back to the original icon/initial if an
+   image fails to load (e.g. offline).
+════════════════════════════════════════ */
+function _mediaHash(str) {
+  var h = 0;
+  for (var i = 0; i < str.length; i++) { h = ((h << 5) - h + str.charCodeAt(i)) | 0; }
+  return Math.abs(h);
+}
+function _enhanceAvatars(scope) {
+  scope.querySelectorAll('.av:not([data-imaged])').forEach(function(av) {
+    var txt = (av.textContent || '').trim();
+    av.dataset.imaged = '1';
+    if (!txt || txt.length > 2 || av.querySelector('img')) return;
+    var seed = av.getAttribute('data-seed');
+    if (!seed) {
+      var host = av.closest('tr, .feed-row, [onclick]') || av.parentElement || av;
+      seed = (host ? host.textContent : txt).replace(/\s+/g, ' ').trim().slice(0, 48) || txt;
+    }
+    var img = document.createElement('img');
+    img.alt = txt;
+    img.referrerPolicy = 'no-referrer';
+    img.onerror = function() { av.textContent = txt; };
+    img.src = 'https://i.pravatar.cc/120?u=' + encodeURIComponent(seed);
+    av.textContent = '';
+    av.appendChild(img);
+  });
+}
+function _enhanceThumbs(scope) {
+  scope.querySelectorAll('.prod-thumb:not([data-imaged])').forEach(function(th) {
+    th.dataset.imaged = '1';
+    if (th.querySelector('img')) return;
+    var iconHtml = th.innerHTML;
+    var row = th.closest('tr');
+    var nameEl = row ? row.querySelector('.td-p') : null;
+    var name = (nameEl ? nameEl.textContent : 'product').trim();
+    var kw = name.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).slice(0, 2).join(',') || 'product';
+    var img = document.createElement('img');
+    img.alt = name;
+    img.referrerPolicy = 'no-referrer';
+    img.onerror = function() { th.innerHTML = iconHtml; };
+    img.src = 'https://loremflickr.com/120/120/' + encodeURIComponent(kw) + '?lock=' + _mediaHash(name);
+    th.innerHTML = '';
+    th.appendChild(img);
+  });
+}
+function enhanceMedia(scope) {
+  scope = scope || document;
+  _enhanceAvatars(scope);
+  _enhanceThumbs(scope);
+}
+function initMediaEnhancer() {
+  enhanceMedia(document);
+  if (!window.MutationObserver) return;
+  var mo = new MutationObserver(function() {
+    if (mo._queued) return;
+    mo._queued = true;
+    requestAnimationFrame(function() { mo._queued = false; enhanceMedia(document); });
+  });
+  mo.observe(document.body, { childList: true, subtree: true });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
 
   /* OTP auto-advance */
@@ -1510,6 +1600,9 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('click', function(e) {
     if (_openMenu && !_openMenu.contains(e.target)) closeMenu();
   });
+
+  /* Replace initials-avatars with profile photos & product-icons with product images */
+  initMediaEnhancer();
 
 });
 
@@ -1706,34 +1799,254 @@ function drawerOrderDetail(order) {
   });
 }
 
-/* ── ADD PRODUCT MODAL ── */
+/* ── ADD / EDIT PRODUCT MODAL (full multi-section form) ── */
+var PROD_BRANDS = ['Titan','Casio','Sennheiser','Bose','Apple','Samsung','Dettol','Lavazza','Nivea','Bombay Shaving Co.','Amul','Tetley'];
+var PROD_CATEGORIES = {
+  'Electronics':['Phones','Audio','Wearables','Accessories'],
+  'Fashion':['Men','Women','Footwear','Watches'],
+  'Jewelry':['Rings','Necklaces','Earrings','Bracelets'],
+  'Food':['Beverages','Snacks','Staples','Confectionery'],
+  'Beauty':['Skincare','Grooming','Fragrance'],
+  'Marine Emergency':['Safety','Engine','Navigation']
+};
+var PROD_CAT_FIELDS = {
+  'Jewelry':['Ring Size','Jewelry Material','Stone Type','Purity','Gender','Occasion'],
+  'Fashion':['Fabric','Sleeve Type','Fit','Pattern'],
+  'Electronics':['RAM','Storage','Battery','Processor'],
+  'Food':['Expiry Date','Ingredients','Calories']
+};
+var PROD_COUNTRIES = ['India','Singapore','China','United States','United Kingdom','Germany','Japan','UAE','Philippines','Vietnam'];
+
 function modalAddProduct(data) {
   data = data || {};
+  var catOpts = '<option value="">Select category…</option>' + Object.keys(PROD_CATEGORIES).map(function(g){
+    return '<optgroup label="'+g+'">' + PROD_CATEGORIES[g].map(function(s){ return '<option value="'+g+'">'+g+' › '+s+'</option>'; }).join('') + '</optgroup>';
+  }).join('');
+  var brandOpts = PROD_BRANDS.map(function(b){ return '<option value="'+b+'"></option>'; }).join('');
+  var countryOpts = PROD_COUNTRIES.map(function(c){ return '<option value="'+c+'"></option>'; }).join('');
   showModal({
     title: data.name ? 'Edit Product' : 'Add New Product',
     icon: 'box-seam', iconBg:'var(--teal-50)', iconColor:'var(--teal-600)',
-    size: 'lg',
+    size: 'xl',
     body: `
-      <div class="form-row">
-        <div class="fg" style="grid-column:span 2"><label class="fg-label">Product Name</label><input class="form-input" placeholder="e.g. Titan Quartz Analog Watch" value="${data.name||''}"></div>
+      <div class="tab-row" style="margin-bottom:18px">
+        <div class="tab-item active" onclick="showProdTab(this,'pt-basic')">Basic Info</div>
+        <div class="tab-item" onclick="showProdTab(this,'pt-media')">Media</div>
+        <div class="tab-item" onclick="showProdTab(this,'pt-pricing')">Pricing</div>
+        <div class="tab-item" onclick="showProdTab(this,'pt-shipping')">Shipping</div>
+        <div class="tab-item" onclick="showProdTab(this,'pt-variants')">Variants</div>
       </div>
-      <div class="fg"><label class="fg-label">Description</label><textarea class="form-input" placeholder="Product description…" style="height:70px">${data.desc||''}</textarea></div>
-      <div class="form-row triple">
-        <div class="fg"><label class="fg-label">Category</label><select class="form-select"><option>Electronics</option><option>Fashion</option><option>Beauty</option><option>Fitness</option><option>Marine Emergency</option><option>Living</option><option>Games</option><option>Stationery</option></select></div>
-        <div class="fg"><label class="fg-label">Price ($)</label><input class="form-input" type="number" placeholder="0.00" value="${data.price||''}"></div>
-        <div class="fg"><label class="fg-label">Stock Quantity</label><input class="form-input" type="number" placeholder="0" value="${data.stock||''}"></div>
+
+      <div id="pt-basic" class="prod-tab">
+        <div class="sec-label">Product Details</div>
+        <div class="form-row">
+          <div class="fg"><label class="fg-label">Product Title *</label><input class="form-input" id="pp-title" placeholder="Enter product name" value="${data.name||''}" oninput="prodSlugify()"></div>
+          <div class="fg"><label class="fg-label">Product Subtitle</label><input class="form-input" placeholder="Short product tagline"></div>
+        </div>
+        <div class="fg"><label class="fg-label">Product Slug / URL Handle</label><input class="form-input mono" id="pp-slug" placeholder="auto-generated-from-title"><div class="fg-hint">Auto-generated from the title — editable</div></div>
+        <div class="fg"><label class="fg-label">Product Description</label>
+          <div class="rt-toolbar">
+            <button type="button" class="rt-btn" title="Bold" onmousedown="event.preventDefault()" onclick="prodRich('bold')"><i class="ti ti-bold"></i></button>
+            <button type="button" class="rt-btn" title="Italic" onmousedown="event.preventDefault()" onclick="prodRich('italic')"><i class="ti ti-italic"></i></button>
+            <button type="button" class="rt-btn" title="Underline" onmousedown="event.preventDefault()" onclick="prodRich('underline')"><i class="ti ti-underline"></i></button>
+            <button type="button" class="rt-btn" title="Heading" onmousedown="event.preventDefault()" onclick="prodRichBlock('h3')"><i class="ti ti-heading"></i></button>
+            <button type="button" class="rt-btn" title="Bullet list" onmousedown="event.preventDefault()" onclick="prodRich('insertUnorderedList')"><i class="ti ti-list"></i></button>
+            <button type="button" class="rt-btn" title="Numbered list" onmousedown="event.preventDefault()" onclick="prodRich('insertOrderedList')"><i class="ti ti-list-numbers"></i></button>
+            <button type="button" class="rt-btn" title="Link" onmousedown="event.preventDefault()" onclick="prodRichLink()"><i class="ti ti-link"></i></button>
+            <button type="button" class="rt-btn" title="Image" onmousedown="event.preventDefault()" onclick="prodRichImage()"><i class="ti ti-photo"></i></button>
+            <button type="button" class="rt-btn" title="Table" onmousedown="event.preventDefault()" onclick="prodRichTable()"><i class="ti ti-table"></i></button>
+            <button type="button" class="rt-btn" title="Code block" onmousedown="event.preventDefault()" onclick="prodRichBlock('pre')"><i class="ti ti-code"></i></button>
+          </div>
+          <div class="rt-editor" id="pp-desc" contenteditable="true">${data.desc||''}</div>
+        </div>
+        <div class="fg"><label class="fg-label">Short Description</label><textarea class="form-input" id="pp-short" maxlength="250" placeholder="Brief summary (max 250 characters)" style="height:64px" oninput="prodShortCount()"></textarea><div class="fg-hint"><span id="pp-short-count">0</span>/250 characters</div></div>
+        <div class="form-row triple">
+          <div class="fg"><label class="fg-label">Brand</label><input class="form-input" list="pp-brands" placeholder="Search or add brand…" autocomplete="off"><datalist id="pp-brands">${brandOpts}</datalist></div>
+          <div class="fg"><label class="fg-label">Product Type / Category</label><select class="form-select" id="pp-cat" onchange="renderProdCategoryFields(this.value)">${catOpts}</select></div>
+          <div class="fg"><label class="fg-label">Status</label><select class="form-select"><option>Draft</option><option ${data.name?'':'selected'}>Active</option><option>Archived</option></select></div>
+        </div>
+        <div id="pp-cat-fields"></div>
       </div>
-      <div class="form-row">
-        <div class="fg"><label class="fg-label">SKU / Product ID</label><input class="form-input" placeholder="AM-SKU-001" value="${data.sku||''}"></div>
-        <div class="fg"><label class="fg-label">Weight (grams)</label><input class="form-input" type="number" placeholder="0"></div>
+
+      <div id="pt-media" class="prod-tab" style="display:none">
+        <div class="sec-label">Product Media</div>
+        <div class="fg"><label class="fg-label">Product Images</label>
+          <input type="file" id="pp-imgs-input" accept="image/jpeg,image/png,image/webp,image/avif" multiple style="display:none" onchange="previewProdImages(this)">
+          <div class="upload-area" id="pp-imgs-area" onclick="document.getElementById('pp-imgs-input').click()" ondragover="prodDragOver(event)" ondragleave="prodDragLeave(event)" ondrop="prodDropImages(event)">
+            <i class="ti ti-cloud-upload" style="font-size:28px;display:block;margin-bottom:6px"></i>
+            Drag &amp; drop images here, or click to upload
+            <div class="fg-hint" style="margin-top:4px">JPG · PNG · WEBP · AVIF — multiple allowed</div>
+          </div>
+          <div class="img-prev-grid" id="pp-img-grid"></div>
+        </div>
+        <div class="fg"><label class="fg-label">Thumbnail Image</label>
+          <input type="file" id="pp-thumb-input" accept="image/*" style="display:none" onchange="previewProdThumb(this)">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div class="img-prev" id="pp-thumb-prev" style="display:none"></div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('pp-thumb-input').click()"><i class="ti ti-photo"></i>Pick Thumbnail</button>
+          </div>
+        </div>
       </div>
-      <div class="form-row" style="margin-bottom:0">
-        <label class="switch"><input type="checkbox" ${data.featured?'checked':''}><div class="switch-track"></div><span class="switch-label">Featured / Deal Product</span></label>
-        <label class="switch"><input type="checkbox" ${!data.inactive?'checked':''}><div class="switch-track"></div><span class="switch-label">Product Active</span></label>
+
+      <div id="pt-pricing" class="prod-tab" style="display:none">
+        <div class="sec-label">Pricing</div>
+        <div class="form-row">
+          <div class="fg"><label class="fg-label">Selling Price *</label><input class="form-input" type="number" placeholder="0.00" value="${data.price||''}"></div>
+          <div class="fg"><label class="fg-label">Currency</label><select class="form-select"><option>USD ($)</option><option>SGD (S$)</option><option>EUR (€)</option><option>INR (₹)</option><option>GBP (£)</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label class="fg-label">Tax Class</label><select class="form-select"><option>Standard</option><option>Reduced</option><option>Zero-rated</option><option>Exempt</option></select></div>
+          <div class="fg"><label class="fg-label">Unit Price</label><input class="form-input" placeholder="e.g. $2.00 / 100ml"></div>
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label class="switch"><input type="checkbox" checked><div class="switch-track"></div><span class="switch-label">Taxable</span></label>
+        </div>
+      </div>
+
+      <div id="pt-shipping" class="prod-tab" style="display:none">
+        <div class="sec-label">Shipping &amp; Delivery</div>
+        <div class="form-row" style="margin-bottom:14px">
+          <label class="switch"><input type="checkbox" checked><div class="switch-track"></div><span class="switch-label">Physical Product</span></label>
+          <label class="switch"><input type="checkbox"><div class="switch-track"></div><span class="switch-label">Free Shipping</span></label>
+        </div>
+        <div class="form-row triple">
+          <div class="fg"><label class="fg-label">Weight</label><input class="form-input" type="number" placeholder="0"></div>
+          <div class="fg"><label class="fg-label">Weight Unit</label><select class="form-select"><option>kg</option><option>g</option><option>lb</option><option>oz</option></select></div>
+          <div class="fg"><label class="fg-label">Package Type</label><select class="form-select"><option>Box</option><option>Envelope</option><option>Pallet</option><option>Custom</option></select></div>
+        </div>
+        <div class="fg"><label class="fg-label">Dimensions (L × W × H, cm)</label>
+          <div class="form-row triple">
+            <input class="form-input" type="number" placeholder="Length">
+            <input class="form-input" type="number" placeholder="Width">
+            <input class="form-input" type="number" placeholder="Height">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label class="fg-label">Shipping Class</label><select class="form-select"><option>Standard</option><option>Heavy</option><option>Fragile</option><option>Hazardous</option></select></div>
+          <div class="fg"><label class="fg-label">Country of Origin</label><input class="form-input" list="pp-countries" placeholder="Search country…" autocomplete="off"><datalist id="pp-countries">${countryOpts}</datalist></div>
+        </div>
+      </div>
+
+      <div id="pt-variants" class="prod-tab" style="display:none">
+        <div class="sec-label">Product Options</div>
+        <div id="pp-options"></div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="prodAddOption()"><i class="ti ti-plus"></i>Add Option</button>
+        <div class="sec-label mt20">Variants</div>
+        <div class="var-table-wrap">
+          <table>
+            <thead><tr><th>Image</th><th>Variant</th><th>SKU</th><th>Barcode</th><th>Price</th><th>Compare</th><th>Cost</th><th>Qty</th><th>Weight</th><th>Status</th><th></th></tr></thead>
+            <tbody id="pp-variants-body"></tbody>
+          </table>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm mt12" onclick="prodAddVariant()"><i class="ti ti-plus"></i>Add Variant</button>
       </div>
     `,
     footer: '<button class="btn btn-primary" onclick="closeModal();toast(\'' + (data.name?'Product updated':'Product added') + '\',\'success\')"><i class="ti ti-check"></i>' + (data.name?'Save Changes':'Add Product') + '</button>'
   });
+  prodShortCount();
+  if (data.name) prodSlugify();
+  prodAddOption();
+  prodAddVariant();
+}
+
+/* ── Product form helpers ── */
+function showProdTab(el, id) {
+  el.parentElement.querySelectorAll('.tab-item').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  document.querySelectorAll('.prod-tab').forEach(function(p){ p.style.display = 'none'; });
+  var panel = document.getElementById(id);
+  if (panel) panel.style.display = '';
+}
+function prodSlugify() {
+  var t = document.getElementById('pp-title'), s = document.getElementById('pp-slug');
+  if (!t || !s) return;
+  s.value = t.value.toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-');
+}
+function prodShortCount() {
+  var ta = document.getElementById('pp-short'), c = document.getElementById('pp-short-count');
+  if (ta && c) c.textContent = ta.value.length;
+}
+function prodRich(cmd) { document.execCommand(cmd, false, null); var e=document.getElementById('pp-desc'); if(e) e.focus(); }
+function prodRichBlock(tag) { document.execCommand('formatBlock', false, tag); var e=document.getElementById('pp-desc'); if(e) e.focus(); }
+function prodRichLink() { var u = prompt('Enter URL:', 'https://'); if (u) document.execCommand('createLink', false, u); }
+function prodRichImage() { var u = prompt('Enter image URL:', 'https://'); if (u) document.execCommand('insertImage', false, u); }
+function prodRichTable() { document.execCommand('insertHTML', false, '<table><tr><td>&nbsp;</td><td>&nbsp;</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td></tr></table><p></p>'); }
+function prodAddImageFiles(files) {
+  var grid = document.getElementById('pp-img-grid');
+  if (!grid) return;
+  Array.prototype.forEach.call(files, function(file) {
+    if (!file.type || file.type.indexOf('image') !== 0) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var d = document.createElement('div');
+      d.className = 'img-prev';
+      d.innerHTML = '<img src="'+e.target.result+'" alt=""><button type="button" onclick="this.parentElement.remove()"><i class="ti ti-x"></i></button>';
+      grid.appendChild(d);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function previewProdImages(input) { if (input.files) prodAddImageFiles(input.files); }
+function prodDragOver(e) { e.preventDefault(); var a=document.getElementById('pp-imgs-area'); if(a) a.classList.add('drag'); }
+function prodDragLeave(e) { var a=document.getElementById('pp-imgs-area'); if(a) a.classList.remove('drag'); }
+function prodDropImages(e) { e.preventDefault(); var a=document.getElementById('pp-imgs-area'); if(a) a.classList.remove('drag'); if(e.dataTransfer&&e.dataTransfer.files) prodAddImageFiles(e.dataTransfer.files); }
+function previewProdThumb(input) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) { var p=document.getElementById('pp-thumb-prev'); if(p){ p.style.display='block'; p.innerHTML='<img src="'+e.target.result+'" alt="">'; } };
+  reader.readAsDataURL(input.files[0]);
+}
+function renderProdCategoryFields(cat) {
+  var wrap = document.getElementById('pp-cat-fields');
+  if (!wrap) return;
+  var fields = PROD_CAT_FIELDS[cat];
+  if (!fields) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = '<div class="sec-label mt8">' + cat + ' Attributes</div><div class="form-row triple">' +
+    fields.map(function(f){ return '<div class="fg"><label class="fg-label">'+f+'</label><input class="form-input" placeholder="'+f+'"></div>'; }).join('') +
+    '</div>';
+}
+function prodAddOption() {
+  var wrap = document.getElementById('pp-options');
+  if (!wrap) return;
+  var row = document.createElement('div');
+  row.className = 'opt-row';
+  row.innerHTML =
+    '<div class="fg" style="width:190px"><label class="fg-label">Option Name</label>' +
+      '<select class="form-select"><option>Size</option><option>Color</option><option>Material</option><option>Storage</option><option>RAM</option><option>Weight</option><option>Pack Size</option><option>Flavor</option><option>Fabric</option><option>Gender</option><option>Ring Size</option><option>Custom Option</option></select></div>' +
+    '<div class="fg" style="flex:1"><label class="fg-label">Option Values</label>' +
+      '<div class="tag-input-wrap" onclick="this.querySelector(\'input\').focus()"><input type="text" placeholder="Type a value, press Enter" onkeydown="prodTagKey(event,this)"></div></div>' +
+    '<button type="button" class="btn btn-ghost btn-sm btn-icon" style="margin-top:25px" onclick="this.closest(\'.opt-row\').remove()"><i class="ti ti-trash"></i></button>';
+  wrap.appendChild(row);
+}
+function prodTagKey(e, input) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    var v = input.value.trim();
+    if (!v) return;
+    var chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.innerHTML = v + '<i class="ti ti-x" onclick="this.parentElement.remove()"></i>';
+    input.parentElement.insertBefore(chip, input);
+    input.value = '';
+  }
+}
+function prodAddVariant() {
+  var tb = document.getElementById('pp-variants-body');
+  if (!tb) return;
+  var tr = document.createElement('tr');
+  tr.innerHTML =
+    '<td><button type="button" class="btn btn-ghost btn-sm btn-icon" title="Variant image"><i class="ti ti-photo"></i></button></td>' +
+    '<td><input class="form-input" placeholder="e.g. Red / L" style="width:120px"></td>' +
+    '<td><input class="form-input" placeholder="SKU" style="width:100px"></td>' +
+    '<td><input class="form-input" placeholder="Barcode" style="width:110px"></td>' +
+    '<td><input class="form-input" type="number" placeholder="0.00" style="width:80px"></td>' +
+    '<td><input class="form-input" type="number" placeholder="0.00" style="width:80px"></td>' +
+    '<td><input class="form-input" type="number" placeholder="0.00" style="width:80px"></td>' +
+    '<td><input class="form-input" type="number" placeholder="0" style="width:64px"></td>' +
+    '<td><input class="form-input" type="number" placeholder="0" style="width:64px"></td>' +
+    '<td><select class="form-select" style="width:98px"><option>Active</option><option>Draft</option></select></td>' +
+    '<td><button type="button" class="btn btn-danger btn-sm btn-icon" onclick="this.closest(\'tr\').remove()"><i class="ti ti-trash"></i></button></td>';
+  tb.appendChild(tr);
 }
 
 /* ── ASSIGN PARTNER MODAL ── */
@@ -1774,7 +2087,6 @@ function modalAddPartner(data) {
         <div class="fg"><label class="fg-label">Port Zone</label><select class="form-select"><option>Port of Singapore</option><option>Keppel Terminal</option><option>Brani Terminal</option><option>Jurong Port</option><option>PSA Pasir Panjang</option></select></div>
       </div>
       <div class="fg"><label class="fg-label">Partner ID</label><input class="form-input" placeholder="DP-00XXX" value="${data.id||''}"><div class="fg-hint">Leave blank to auto-generate</div></div>
-      <div class="fg"><label class="fg-label">Vehicle Type</label><select class="form-select"><option>Motorcycle</option><option>Bicycle</option><option>Car / Van</option><option>On foot</option></select></div>
     `,
     footer: '<button class="btn btn-primary" onclick="closeModal();toast(\'' + (data.name?'Partner updated':'Partner onboarded') + '\',\'success\')"><i class="ti ti-check"></i>' + (data.name?'Save Changes':'Onboard Partner') + '</button>'
   });
@@ -1799,9 +2111,62 @@ function modalAddCoupon(data) {
         <div class="fg"><label class="fg-label">Expiry Date</label><input class="form-input" type="date" value="2026-10-31"></div>
         <div class="fg"><label class="fg-label">Max Uses</label><input class="form-input" type="number" placeholder="Unlimited"></div>
       </div>
-      <div class="fg"><label class="fg-label">Applicable To</label><select class="form-select"><option>All Sailors</option><option>New Sailors Only</option><option>Referrals Only</option><option>Specific Users</option></select></div>
+      <div class="fg"><label class="fg-label">Applicable To</label>
+        <select class="form-select" id="coupon-applies" onchange="toggleCouponUsers(this.value)" style="width:100%">
+          <option>All Sailors</option>
+          <option>1st Order</option>
+          <option>Referrals Only</option>
+          <option>Specific Users</option>
+        </select>
+      </div>
+      <div class="fg" id="coupon-users-field" style="display:none">
+        <label class="fg-label">Select Users</label>
+        <div class="input-wrap" style="margin-bottom:8px;width:100%"><i class="ti ti-search pre"></i><input type="text" class="form-input has-icon" placeholder="Search sailors…" style="width:100%"></div>
+        <div style="max-height:170px;overflow-y:auto;border:1.5px solid var(--border-sm);border-radius:var(--radius-md);padding:6px">
+          ${[
+            {n:'Lois Becket',id:'SLR-0012'},{n:'Ali Mahmoud',id:'SLR-0048'},{n:'James Wren',id:'SLR-0071'},
+            {n:'Sara Chen',id:'SLR-0093'},{n:'Ravi Patel',id:'SLR-0104'},{n:'Maria Santos',id:'SLR-0119'},
+          ].map(function(u){ return '<label class="flex aic g10" style="padding:7px 8px;border-radius:var(--radius-sm);cursor:pointer"><input type="checkbox" style="width:16px;height:16px"><div class="av av-sm av-teal">'+u.n[0]+'</div><div class="f1"><div class="sm w7 c1">'+u.n+'</div><div class="xs c4 mono">'+u.id+'</div></div></label>'; }).join('')}
+        </div>
+      </div>
     `,
     footer: '<button class="btn btn-primary" onclick="closeModal();toast(\'' + (data.code?'Coupon updated':'Coupon created') + '\',\'success\')"><i class="ti ti-check"></i>' + (data.code?'Save Changes':'Create Coupon') + '</button>'
+  });
+}
+function toggleCouponUsers(val) {
+  var f = document.getElementById('coupon-users-field');
+  if (f) f.style.display = (val === 'Specific Users') ? '' : 'none';
+}
+
+/* ── CONFIGURE LOYALTY POINTS MODAL ── */
+function modalConfigurePoints() {
+  showModal({
+    title: 'Configure Loyalty Points',
+    sub: 'Set how sailors earn and redeem points',
+    icon: 'settings', iconBg:'var(--amber-50)', iconColor:'var(--amber-600)',
+    size: 'lg',
+    body: `
+      <div class="sec-label">Earning Rules</div>
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">Points per Delivery Completed</label><input class="form-input" type="number" value="250"></div>
+        <div class="fg"><label class="fg-label">Points per Successful Referral</label><input class="form-input" type="number" value="500"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">Points per $1 Spent</label><input class="form-input" type="number" value="5"></div>
+        <div class="fg"><label class="fg-label">Sign-up Bonus Points</label><input class="form-input" type="number" value="100"></div>
+      </div>
+      <div class="sec-label mt16">Redemption Rules</div>
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">Redemption Rate</label><input class="form-input" value="100 pts = $1.00"></div>
+        <div class="fg"><label class="fg-label">Minimum Points to Redeem</label><input class="form-input" type="number" value="500"></div>
+      </div>
+      <div class="fg"><label class="fg-label">Points Expiry</label><select class="form-select" style="width:100%"><option>Never</option><option>6 months</option><option selected>12 months</option><option>24 months</option></select></div>
+      <div class="form-row" style="margin-bottom:0">
+        <label class="switch"><input type="checkbox" checked><div class="switch-track"></div><span class="switch-label">Loyalty Program Active</span></label>
+        <label class="switch"><input type="checkbox" checked><div class="switch-track"></div><span class="switch-label">Notify sailors on points earned</span></label>
+      </div>
+    `,
+    footer: '<button class="btn btn-primary" onclick="closeModal();toast(\'Points configuration saved\',\'success\',\'check\')"><i class="ti ti-check"></i>Save Configuration</button>'
   });
 }
 
@@ -1901,12 +2266,23 @@ function modalSubstitute(item) {
         <div class="sm w7 c1">${item||'Bombay Shaving Company 5 Piece Kit'}</div>
         <div class="xs c4 mt4">Partner confirmed out of stock at Wegmans PSA</div>
       </div>
-      <div class="fg"><label class="fg-label">Substitute Product</label><input class="form-input" placeholder="Search substitute product…"></div>
-      <div class="fg"><label class="fg-label">Price Difference</label>
-        <div class="seg"><div class="seg-btn active" onclick="segClick(this)">Same Price</div><div class="seg-btn" onclick="segClick(this)">Price Increase</div><div class="seg-btn" onclick="segClick(this)">Price Decrease</div></div>
+      <div class="fg"><label class="fg-label">Substitute Product</label>
+        <input class="form-input" list="sub-product-list" id="sub-product-input" placeholder="Search substitute product…" autocomplete="off">
+        <datalist id="sub-product-list">
+          <option value="Gillette Fusion5 Shaving Kit"></option>
+          <option value="Nivea Men Grooming Set"></option>
+          <option value="Philips OneBlade Trimmer Kit"></option>
+          <option value="Bombay Shaving Company 3 Piece Kit"></option>
+          <option value="Wilkinson Sword Hydro 5 Kit"></option>
+          <option value="The Man Company Beard Grooming Kit"></option>
+        </datalist>
+        <div class="fg-hint">Start typing to search the catalog</div>
       </div>
-      <div class="fg" id="price-diff-field" style="display:none"><label class="fg-label">Amount ($)</label><input class="form-input" type="number" placeholder="0.00"></div>
-      <div class="fg"><label class="fg-label">Message to Sailor</label><textarea class="form-input" style="height:80px" placeholder="Explain the substitution…">The requested item was out of stock. We found a similar alternative at the same price point.</textarea></div>
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">Add Tax (%)</label><input class="form-input" type="number" placeholder="0"></div>
+        <div class="fg"><label class="fg-label">Add Cost ($)</label><input class="form-input" type="number" placeholder="0.00"></div>
+      </div>
+      <div class="fg"><label class="fg-label">Message to Sailor</label><textarea class="form-input" style="height:80px" placeholder="Explain the substitution…">The requested item was out of stock. We found a similar alternative.</textarea></div>
     `,
     footer: '<button class="btn btn-primary" onclick="closeModal();toast(\'Substitute sent to sailor for approval\',\'success\',\'send\')"><i class="ti ti-send"></i>Send to Sailor for Approval</button>'
   });
@@ -2669,7 +3045,7 @@ function viewSpecialRequest(req) {
 PAGES.products = function(c) {
   c.innerHTML = `
   <div class="pg-header">
-    <div class="pg-header-l"><h1 class="pg-title">Products & Catalog</h1><p class="pg-sub"><span>1,284 products</span><span class="sep">·</span><span style="color:var(--danger-text);font-weight:700">86 out of stock</span></p></div>
+    <div class="pg-header-l"><h1 class="pg-title">Products & Catalog</h1><p class="pg-sub"><span>1,284 products</span></p></div>
     <div class="pg-actions">
       <div class="input-wrap"><i class="ti ti-search pre"></i><input type="text" class="form-input has-icon" placeholder="Search products…" style="width:200px"></div>
       <select class="form-select"><option>All Categories</option><option>Fashion</option><option>Beauty</option><option>Fitness</option><option>Electronics</option><option>Marine Emergency</option><option>Living</option></select>
@@ -2682,7 +3058,7 @@ PAGES.products = function(c) {
     <div class="stat-card sc-teal"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Total Categories</div><div class="stat-icon"><i class="ti ti-category"></i></div></div><div class="stat-val">12</div><div class="stat-foot"><span>Across catalog</span></div></div>
     <div class="stat-card sc-amber"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Featured / Deals</div><div class="stat-icon"><i class="ti ti-star"></i></div></div><div class="stat-val">48</div><div class="stat-foot"><span>Active promotions</span></div></div>
   </div>
-  <div class="tab-row"><div class="tab-item active" onclick="segClick(this)">All Products</div><div class="tab-item" onclick="segClick(this)">Deal Products</div><div class="tab-item" onclick="segClick(this)">Out of Stock</div><div class="tab-item" onclick="segClick(this)">Special Requests</div></div>
+  <div class="tab-row"><div class="tab-item active" onclick="segClick(this)">All Products</div><div class="tab-item" onclick="segClick(this)">Deal Products</div><div class="tab-item" onclick="segClick(this)">Special Requests</div></div>
   <div class="card" id="products-table"></div>`;
 
   var prods = [
@@ -2695,18 +3071,12 @@ PAGES.products = function(c) {
   ];
 
   var rows = prods.map(function(p) {
-    var skc = p.sk === 0 ? 'var(--danger-text)' : p.sk < 20 ? 'var(--warning-text)' : 'var(--t3)';
-    var skw = p.sk < 20 ? '700' : '500';
-    var stars = '★'.repeat(Math.floor(p.r)) + '☆'.repeat(5-Math.floor(p.r));
     var feat = p.f ? '<span class="badge badge-amber"><i class="ti ti-star"></i>Yes</span>' : '<span class="td-m">—</span>';
     return '<tr class="tr-click">' +
       '<td><div class="prod-thumb"><i class="ti '+p.ic+'"></i></div></td>' +
       '<td><div class="td-p">'+p.n+'</div><div class="td-m">'+p.d+'</div></td>' +
       '<td><span class="badge badge-navy">'+p.c+'</span></td>' +
       '<td class="td-p w7">'+p.p+'</td>' +
-      '<td style="color:'+skc+';font-weight:'+skw+'">'+p.sk+'</td>' +
-      '<td class="td-m">'+p.so+'</td>' +
-      '<td><span class="stars">'+stars+'</span><span class="xs c4 w6"> '+p.r+'</span></td>' +
       '<td>'+feat+'</td>' +
       '<td><span class="badge badge-'+p.sc+'">'+p.s+'</span></td>' +
       '<td><div class="td-acts">' +
@@ -2717,7 +3087,7 @@ PAGES.products = function(c) {
   }).join('');
 
   document.getElementById('products-table').innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th></th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Sold</th><th>Rating</th><th>Featured</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    '<div class="tbl-wrap"><table><thead><tr><th></th><th>Product</th><th>Category</th><th>Price</th><th>Featured</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 
   document.getElementById('products-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
     var p = prods[i];
@@ -2757,15 +3127,12 @@ PAGES.spares = function(c) {
   ];
 
   var rows = spares.map(function(p) {
-    var skc = p.sk === 0 ? 'var(--danger-text)' : p.sk < 20 ? 'var(--warning-text)' : 'var(--t3)';
-    var skw = p.sk < 20 ? '700' : '500';
     return '<tr class="tr-click">' +
       '<td><div class="prod-thumb"><i class="ti '+p.ic+'"></i></div></td>' +
       '<td><div class="td-p">'+p.n+'</div><div class="td-m">'+p.d+'</div></td>' +
       '<td><span class="badge badge-navy">'+p.c+'</span></td>' +
       '<td class="td-m mono">'+p.pn+'</td>' +
       '<td class="td-p w7">'+p.p+'</td>' +
-      '<td style="color:'+skc+';font-weight:'+skw+'">'+p.sk+'</td>' +
       '<td><span class="badge badge-'+p.sc+'">'+p.s+'</span></td>' +
       '<td><div class="td-acts">' +
         '<button class="btn btn-ghost btn-sm btn-icon" data-action="edit" title="Edit"><i class="ti ti-edit"></i></button>' +
@@ -2774,7 +3141,7 @@ PAGES.spares = function(c) {
   }).join('');
 
   document.getElementById('spares-table').innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th></th><th>Spare Part</th><th>Type</th><th>Part No.</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    '<div class="tbl-wrap"><table><thead><tr><th></th><th>Spare Part</th><th>Type</th><th>Part No.</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 
   document.getElementById('spares-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
     var p = spares[i];
@@ -2806,13 +3173,37 @@ function modalAddSpare(data) {
         <div class="fg"><label class="fg-label">Part Number</label><input class="form-input" placeholder="SP-XXX-000" value="${data.pn||''}"></div>
         <div class="fg"><label class="fg-label">Reorder Level</label><input class="form-input" type="number" placeholder="10"></div>
       </div>
-      <div class="form-row" style="margin-bottom:0">
+      <div class="fg"><label class="fg-label">Product Image</label>
+        <input type="file" id="spare-img-input" accept="image/*" style="display:none" onchange="previewSpareImage(this)">
+        <div class="upload-area" id="spare-upload" onclick="document.getElementById('spare-img-input').click()">
+          <i class="ti ti-photo-up" style="font-size:26px;display:block;margin-bottom:6px"></i>
+          Click to upload the product image
+        </div>
+        <img id="spare-img-preview" alt="preview" style="display:none;max-height:130px;width:auto;border-radius:var(--radius-md);margin-top:10px;border:1px solid var(--border-sm)">
+      </div>
+      <div class="form-row">
         <label class="switch"><input type="checkbox" checked><div class="switch-track"></div><span class="switch-label">Available to Sailors</span></label>
         <label class="switch"><input type="checkbox" ${data.critical?'checked':''}><div class="switch-track"></div><span class="switch-label">Critical / Mandatory Item</span></label>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label class="switch"><input type="checkbox" ${data.deal?'checked':''}><div class="switch-track"></div><span class="switch-label">Deal Product</span></label>
+        <label class="switch"><input type="checkbox" ${data.express?'checked':''}><div class="switch-track"></div><span class="switch-label">Express Item</span></label>
       </div>
     `,
     footer: '<button class="btn btn-primary" onclick="closeModal();toast(\'' + (data.name?'Spare part updated':'Spare part added to catalog') + '\',\'success\')"><i class="ti ti-check"></i>' + (data.name?'Save Changes':'Add Product') + '</button>'
   });
+}
+function previewSpareImage(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = document.getElementById('spare-img-preview');
+    if (img) { img.src = e.target.result; img.style.display = 'block'; }
+    var ua = document.getElementById('spare-upload');
+    if (ua) ua.innerHTML = '<i class="ti ti-check" style="font-size:22px;color:var(--success-icon);display:block;margin-bottom:6px"></i>' + file.name;
+  };
+  reader.readAsDataURL(file);
 }
 
 /* ─── EXPRESS, REWARDS, PARTNERS, ASSIGNMENTS, VERIFICATION, NOTIFICATIONS, CHAT, SUPPORT, SELLERS, SETTINGS ─── */
@@ -2837,13 +3228,9 @@ PAGES.express = function(c) {
     {n:'Dettol Antiseptic',c:'Personal Care',p:'$6.00',sz:'250ml',sk:0,so:621,s:'Out of Stock'},
   ];
   var rows = items.map(function(e) {
-    var sc = e.sk === 0 ? 'var(--danger-text)' : 'var(--t3)';
-    var sw = e.sk === 0 ? '700' : '500';
     return '<tr class="tr-click">' +
       '<td class="td-p">'+e.n+'</td><td><span class="tag">'+e.c+'</span></td>' +
       '<td class="td-p w7">'+e.p+'</td><td class="td-m">'+e.sz+'</td>' +
-      '<td style="color:'+sc+';font-weight:'+sw+'">'+e.sk+'</td>' +
-      '<td class="td-p">'+e.so.toLocaleString()+'</td>' +
       '<td><span class="badge badge-'+(e.s==='Active'?'success':'danger')+'">'+e.s+'</span></td>' +
       '<td><div class="td-acts">' +
         '<button class="btn btn-ghost btn-sm btn-icon" data-action="edit" title="Edit"><i class="ti ti-edit"></i></button>' +
@@ -2852,7 +3239,7 @@ PAGES.express = function(c) {
   }).join('');
 
   document.getElementById('express-table').innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Size</th><th>Stock</th><th>Units Sold</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    '<div class="tbl-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Size</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 
   document.getElementById('express-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
     var e = items[i];
@@ -2868,7 +3255,7 @@ PAGES.rewards = function(c) {
     <div class="pg-header-l"><h1 class="pg-title">Rewards & Coupons</h1><p class="pg-sub"><span>Loyalty · Referrals · Coupons</span></p></div>
     <div class="pg-actions">
       <button class="btn btn-secondary btn-sm" onclick="modalAddCoupon()"><i class="ti ti-ticket"></i>Create Coupon</button>
-      <button class="btn btn-primary btn-sm"><i class="ti ti-settings"></i>Configure Points</button>
+      <button class="btn btn-primary btn-sm" onclick="modalConfigurePoints()"><i class="ti ti-settings"></i>Configure Points</button>
     </div>
   </div>
   <div class="grid-2 mb20">
@@ -2890,15 +3277,15 @@ PAGES.rewards = function(c) {
       </div>
     </div>
     <div class="card">
-      <div class="card-hd"><div class="card-ttl"><i class="ti ti-ticket"></i>Active Coupons</div><button class="btn btn-primary btn-sm" onclick="modalAddCoupon()"><i class="ti ti-plus"></i>Add</button></div>
+      <div class="card-hd"><div class="card-ttl"><i class="ti ti-ticket"></i>Active Coupons</div></div>
       <div class="card-body-sm" id="coupons-list"></div>
     </div>
   </div>
   <div class="card">
-    <div class="card-hd"><div class="card-ttl"><i class="ti ti-history"></i>Recent Reward Activity</div><button class="btn btn-ghost btn-sm" onclick="exportData()"><i class="ti ti-download"></i>Export</button></div>
+    <div class="card-hd"><div class="card-ttl"><i class="ti ti-report-analytics"></i>Coupon-wise Report</div><button class="btn btn-ghost btn-sm" onclick="exportData()"><i class="ti ti-download"></i>Export</button></div>
     <div class="tbl-wrap">
-      <table><thead><tr><th>Sailor</th><th>Activity</th><th>Points</th><th>Reference</th><th>Date</th></tr></thead>
-      <tbody id="rewards-activity"></tbody>
+      <table><thead><tr><th>Coupon Code</th><th>Discount</th><th>Applicable To</th><th>Times Used</th><th>Total Discount Given</th><th>Revenue Impact</th><th>Status</th></tr></thead>
+      <tbody id="coupon-report"></tbody>
       </table>
     </div>
   </div>`;
@@ -2920,19 +3307,24 @@ PAGES.rewards = function(c) {
     coupEl.appendChild(div);
   });
 
-  var activity = [
-    ['Lois Becket','Order Delivered','+ 250 pts','Order #AM2458','May 20'],
-    ['Lois Becket','Coupon Redeemed','− 550 pts','SHIP10','May 18'],
-    ['James Wren','Referral Bonus','+ 500 pts','WhatsApp referral','May 15'],
-    ['Sara Chen','Order Delivered','+ 250 pts','Order #AM2463','May 14'],
-    ['Ali Mahmoud','Coupon Redeemed','− 920 pts','FREESHIP','May 12'],
+  var couponReport = [
+    {code:'SHIP10',  d:'10% off shipping', a:'All Sailors',     u:284, disc:'$1,420', rev:'$12,680', s:'Active',  sc:'success'},
+    {code:'FREESHIP',d:'20% off shipping', a:'1st Order',        u:142, disc:'$2,130', rev:'$7,940',  s:'Active',  sc:'success'},
+    {code:'REFERRAL',d:'10% off',          a:'Referrals Only',   u:97,  disc:'$680',   rev:'$5,210',  s:'Active',  sc:'success'},
+    {code:'WELCOME5',d:'$5 flat off',      a:'1st Order',        u:213, disc:'$1,065', rev:'$9,340',  s:'Active',  sc:'success'},
+    {code:'PORT15',  d:'15% off',          a:'Specific Users',   u:46,  disc:'$920',   rev:'$3,180',  s:'Expired', sc:'neutral'},
   ];
-  var actTbody = document.getElementById('rewards-activity');
-  activity.forEach(function(row) {
+  var repTbody = document.getElementById('coupon-report');
+  couponReport.forEach(function(r) {
     var tr = document.createElement('tr');
-    var ptColor = row[2].startsWith('+') ? 'var(--success-text)' : 'var(--danger-text)';
-    tr.innerHTML = '<td><div class="flex aic g8"><div class="av av-sm av-amber">'+row[0][0]+'</div><span class="td-p">'+row[0]+'</span></div></td><td class="td-m">'+row[1]+'</td><td class="w7" style="color:'+ptColor+'">'+row[2]+'</td><td class="td-m">'+row[3]+'</td><td class="td-m">'+row[4]+'</td>';
-    actTbody.appendChild(tr);
+    tr.innerHTML = '<td><span class="w8 mono cteal">'+r.code+'</span></td>' +
+      '<td class="td-m">'+r.d+'</td>' +
+      '<td><span class="badge badge-navy">'+r.a+'</span></td>' +
+      '<td class="td-p w7">'+r.u+'</td>' +
+      '<td class="td-p" style="color:var(--danger-text)">'+r.disc+'</td>' +
+      '<td class="td-p w7" style="color:var(--success-text)">'+r.rev+'</td>' +
+      '<td><span class="badge badge-'+r.sc+'">'+r.s+'</span></td>';
+    repTbody.appendChild(tr);
   });
 };
 
@@ -2948,9 +3340,7 @@ PAGES.partners = function(c) {
   </div>
   <div class="stats-row">
     <div class="stat-card sc-navy"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Total Partners</div><div class="stat-icon"><i class="ti ti-users"></i></div></div><div class="stat-val">64</div><div class="stat-foot"><span>Across all ports</span></div></div>
-    <div class="stat-card sc-green"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">On Duty Now</div><div class="stat-icon"><i class="ti ti-circle-check"></i></div></div><div class="stat-val">28</div><div class="stat-foot"><span class="sdot on xs csuccess">All active</span></div></div>
     <div class="stat-card sc-amber"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Active Deliveries</div><div class="stat-icon"><i class="ti ti-motorbike"></i></div></div><div class="stat-val">38</div><div class="stat-foot"><span>In progress</span></div></div>
-    <div class="stat-card sc-teal"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Weekly Earnings</div><div class="stat-icon"><i class="ti ti-currency-dollar"></i></div></div><div class="stat-val">$3.4k</div><div class="stat-foot"><span>Total paid out</span></div></div>
   </div>
   <div class="card" id="partners-table"></div>`;
 
@@ -2963,15 +3353,10 @@ PAGES.partners = function(c) {
     {n:'Sari Wijaya',id:'DP-00145',p:'Keppel Terminal',j:'May 2023',s:'On Duty',c:2,w:'$58.00',t:67,r:'4.5'},
   ];
   var rows = partners.map(function(d) {
-    var sc = d.s==='On Duty'?'teal':d.s==='Available'?'success':'neutral';
-    var cc = d.c > 0 ? 'var(--teal-700)' : 'var(--t4)';
     return '<tr class="tr-click">' +
       '<td><div class="flex aic g10"><div class="av av-teal">'+d.n[0]+'</div><div class="td-p">'+d.n+'</div></div></td>' +
       '<td class="td-id">'+d.id+'</td><td class="td-m">'+d.p+'</td><td class="td-m">'+d.j+'</td>' +
-      '<td><span class="badge badge-'+sc+'">'+d.s+'</span></td>' +
-      '<td class="w7" style="color:'+cc+'">'+d.c+'</td>' +
-      '<td class="cteal w7">'+d.w+'</td><td class="td-m">'+d.t+'</td>' +
-      '<td><span class="stars">★</span><span class="w7 camber"> '+d.r+'</span></td>' +
+      '<td class="td-m">'+d.t+'</td>' +
       '<td><div class="td-acts">' +
         '<button class="btn btn-ghost btn-sm btn-icon" data-action="view"><i class="ti ti-eye"></i></button>' +
         '<button class="btn btn-ghost btn-sm btn-icon" data-action="msg"><i class="ti ti-message"></i></button>' +
@@ -2981,7 +3366,7 @@ PAGES.partners = function(c) {
   }).join('');
 
   document.getElementById('partners-table').innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th>Partner</th><th>ID</th><th>Port Zone</th><th>Joined</th><th>Status</th><th>Active Orders</th><th>This Week</th><th>Total Deliveries</th><th>Rating</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    '<div class="tbl-wrap"><table><thead><tr><th>Partner</th><th>ID</th><th>Port Zone</th><th>Joined</th><th>Total Deliveries</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 
   document.getElementById('partners-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
     var d = partners[i];
@@ -3005,7 +3390,7 @@ PAGES.assignments = function(c) {
         <div class="card-hd"><div class="card-ttl"><i class="ti ti-clipboard-list"></i>Active Assignments</div></div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>ENQ</th><th>Partner</th><th>Order</th><th>Shop</th><th>Deliver To</th><th>Status</th><th>ETA</th><th></th></tr></thead>
+            <thead><tr><th>ENQ</th><th>Partner</th><th>Order</th><th>Deliver To</th><th>Status</th><th>ETA</th></tr></thead>
             <tbody id="assignments-body"></tbody>
           </table>
         </div>
@@ -3052,9 +3437,8 @@ PAGES.assignments = function(c) {
   assignments.forEach(function(a) {
     var tr = document.createElement('tr');
     tr.className = 'tr-click';
-    tr.innerHTML = '<td class="td-id">'+a.e+'</td><td><div class="flex aic g6"><div class="av av-sm av-teal">'+a.p[0]+'</div><span class="sm c1 w7">'+a.p.split(' ')[0]+'</span></div></td><td class="td-id xs">'+a.o+'</td><td class="td-m">'+a.sh+'</td><td class="td-m">'+a.d+'</td><td><span class="badge badge-'+a.sc+'">'+a.s+'</span></td><td class="td-m">'+a.t+'</td><td><button class="btn btn-ghost btn-sm btn-icon" title="Reassign"><i class="ti ti-transfer"></i></button></td>';
+    tr.innerHTML = '<td class="td-id">'+a.e+'</td><td><div class="flex aic g6"><div class="av av-sm av-teal">'+a.p[0]+'</div><span class="sm c1 w7">'+a.p.split(' ')[0]+'</span></div></td><td class="td-id xs">'+a.o+'</td><td class="td-m">'+a.d+'</td><td><span class="badge badge-'+a.sc+'">'+a.s+'</span></td><td class="td-m">'+a.t+'</td>';
     tr.onclick = function() { drawerOrderDetail({id:a.o,sailor:'Sailor',ship:'0123456',terminal:'Berth 7',partner:a.p,payment:'Card · Paid',coupon:'—',total:'$70.00',status:a.s,items:[{name:'Items',qty:3,price:'$70.00'}]}); };
-    tr.querySelector('button').onclick = function(e){ e.stopPropagation(); modalAssignPartner(a.o); };
     abody.appendChild(tr);
   });
 
@@ -3088,19 +3472,7 @@ PAGES.verification = function(c) {
     <div class="stat-card sc-red"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Unavailable Items</div><div class="stat-icon"><i class="ti ti-x"></i></div></div><div class="stat-val">6</div><div class="stat-foot"><span>Action needed</span></div></div>
     <div class="stat-card sc-amber"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Substitutions</div><div class="stat-icon"><i class="ti ti-refresh"></i></div></div><div class="stat-val">4</div><div class="stat-foot"><span>Awaiting approval</span></div></div>
   </div>
-  <div class="card mb20" id="verif-table"></div>
-  <div class="card">
-    <div class="card-hd">
-      <div class="card-ttl"><i class="ti ti-package"></i>ENQ-0042 — Item Detail</div>
-      <div class="card-acts">
-        <button class="btn btn-secondary btn-sm" onclick="toast('PDF report downloaded','success','download')"><i class="ti ti-download"></i>PDF Report</button>
-        <button class="btn btn-primary btn-sm" onclick="toast('Sailor notified','success','send')"><i class="ti ti-send"></i>Notify Sailor</button>
-      </div>
-    </div>
-    <div class="card-body">
-      <div class="grid-3 g16" id="verif-items"></div>
-    </div>
-  </div>`;
+  <div class="card" id="verif-table"></div>`;
 
   var verifs = [
     {e:'ENQ-0042',p:'Rahul Singh',s:'Wegmans PSA',t:3,a:2,u:1,r:'Submitted',sc:'warning'},
@@ -3128,29 +3500,33 @@ PAGES.verification = function(c) {
 
   document.getElementById('verif-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
     var v = verifs[i];
-    tr.onclick = function() { if(v.u>0) modalSubstitute('Bombay Shaving Kit'); };
+    tr.onclick = function() { modalItemDetail(v.e); };
     var subBtn = tr.querySelector('[data-action="sub"]');
     if (subBtn) subBtn.onclick = function(e){ e.stopPropagation(); modalSubstitute('Bombay Shaving Kit'); };
   });
+};
 
+/* ── VERIFICATION ITEM DETAIL MODAL ── */
+function modalItemDetail(enq) {
   var itemsData = [
     {n:'Nu Republic Powerpo X1 Power Bank',q:'×1',a:'—',st:'Available',sc:'success'},
     {n:'21g Protein Bar Variety Pack',q:'×2',a:'Aisle 4',st:'Available',sc:'success'},
     {n:'Bombay Shaving Company 5 Piece Kit',q:'×1',a:'Aisle 2',st:'Unavailable',sc:'danger'},
   ];
-  var itemsEl = document.getElementById('verif-items');
-  itemsData.forEach(function(item) {
+  var itemsHtml = itemsData.map(function(item) {
     var bc = item.sc === 'success' ? 'var(--success-icon)' : 'var(--danger-icon)';
-    var div = document.createElement('div');
-    div.className = 'ecard';
-    div.style.borderLeft = '3px solid ' + bc;
-    div.innerHTML = '<div class="sm w7 c1 mb8">'+item.n+'</div><div class="flex aic g8 mb10"><span class="tag">'+item.q+'</span>'+(item.a!=='—'?'<span class="tag">'+item.a+'</span>':'')+'</div><div class="flex aic jb"><span class="badge badge-'+item.sc+'">'+item.st+'</span>'+(item.st==='Unavailable'?'<button class="btn btn-secondary btn-xs">Find Alt</button>':'')+'</div>';
-    if (item.st === 'Unavailable') {
-      div.querySelector('.btn-xs').onclick = function() { modalSubstitute(item.n); };
-    }
-    itemsEl.appendChild(div);
+    return '<div class="ecard" style="border-left:3px solid '+bc+'"><div class="sm w7 c1 mb8">'+item.n+'</div><div class="flex aic g8 mb10"><span class="tag">'+item.q+'</span>'+(item.a!=='—'?'<span class="tag">'+item.a+'</span>':'')+'</div><div class="flex aic jb"><span class="badge badge-'+item.sc+'">'+item.st+'</span>'+(item.st==='Unavailable'?'<button class="btn btn-secondary btn-xs" onclick="modalSubstitute(\''+item.n+'\')">Find Alt</button>':'')+'</div></div>';
+  }).join('');
+  showModal({
+    title: (enq||'ENQ-0042') + ' — Item Detail',
+    sub: 'Partner in-store verification report',
+    icon: 'package', iconBg:'var(--navy-50)', iconColor:'var(--navy-600)',
+    size: 'lg',
+    body: '<div class="grid-3 g16">' + itemsHtml + '</div>',
+    footer: '<button class="btn btn-secondary" onclick="toast(\'PDF report downloaded\',\'success\',\'download\')"><i class="ti ti-download"></i>PDF Report</button>' +
+            '<button class="btn btn-primary" onclick="closeModal();toast(\'Sailor notified\',\'success\',\'send\')"><i class="ti ti-send"></i>Notify Sailor</button>'
   });
-};
+}
 
 PAGES.notifications = function(c) {
   c.innerHTML = `
@@ -3196,23 +3572,17 @@ PAGES.notifications = function(c) {
 PAGES.chat = function(c) {
   c.innerHTML = `
   <div class="pg-header">
-    <div class="pg-header-l"><h1 class="pg-title">Chat Monitor</h1><p class="pg-sub"><span>Admin ↔ Delivery Partner real-time communication</span></p></div>
+    <div class="pg-header-l"><h1 class="pg-title">Chat Monitor</h1><p class="pg-sub"><span>Admin ↔ Sailors &amp; Delivery Partners — real-time communication</span></p></div>
   </div>
-  <div style="display:grid;grid-template-columns:264px 1fr;gap:16px;height:580px">
+  <div style="display:grid;grid-template-columns:290px 1fr;gap:16px;height:580px">
     <div class="card" style="display:flex;flex-direction:column;overflow:hidden">
       <div style="padding:12px;border-bottom:1px solid var(--border-xs)">
-        <div class="input-wrap wf"><i class="ti ti-search pre"></i><input type="text" class="form-input has-icon wf" placeholder="Search partners…" style="height:34px"></div>
+        <div class="input-wrap wf"><i class="ti ti-search pre"></i><input type="text" class="form-input has-icon wf" placeholder="Search conversations…" style="height:34px"></div>
       </div>
       <div style="flex:1;overflow-y:auto" id="chat-threads"></div>
     </div>
     <div class="card" style="display:flex;flex-direction:column;overflow:hidden">
-      <div style="padding:15px 18px;border-bottom:1px solid var(--border-xs);display:flex;align-items:center;gap:12px">
-        <div class="av av-teal">R</div>
-        <div style="flex:1"><div class="w7 c1">Rahul Singh</div><div class="sdot on xs csuccess">On duty · ENQ-0042 delivering</div></div>
-        <span class="badge badge-teal">DP-00124</span>
-        <button class="btn btn-ghost btn-sm" onclick="toast('Chat archived','','archive')"><i class="ti ti-archive"></i></button>
-        <button class="btn btn-ghost btn-sm btn-icon" onclick="drawerProfile('Rahul Singh','partner')"><i class="ti ti-user"></i></button>
-      </div>
+      <div id="chat-head" style="padding:13px 18px;border-bottom:1px solid var(--border-xs);display:flex;align-items:center;gap:12px"></div>
       <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
       <div style="padding:13px;border-top:1px solid var(--border-xs);display:flex;gap:8px">
         <button class="btn btn-secondary btn-sm btn-icon" onclick="toast('Attachment sent','success','paperclip')" title="Attach file"><i class="ti ti-paperclip"></i></button>
@@ -3222,42 +3592,91 @@ PAGES.chat = function(c) {
     </div>
   </div>`;
 
-  var threads = [
-    {n:'Rahul Singh',id:'DP-00124',l:'All 3 items collected. Heading now',tm:'2m',on:true,un:0,sel:true},
-    {n:'Pita Havili',id:'DP-00087',l:'All items confirmed at shop',tm:'8m',on:true,un:2,sel:false},
-    {n:'Marco Reyes',id:'DP-00201',l:'Heading to Berth 14-B now',tm:'15m',on:true,un:0,sel:false},
-    {n:'Aisha Karimi',id:'DP-00056',l:'Available for next assignment',tm:'1h',on:false,un:0,sel:false},
-  ];
-  var threadsEl = document.getElementById('chat-threads');
-  threads.forEach(function(ch) {
-    var div = document.createElement('div');
-    div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border-xs);cursor:pointer;background:'+(ch.sel?'var(--navy-25)':'transparent');
-    div.innerHTML = '<div style="position:relative"><div class="av av-teal">'+ch.n[0]+'</div>'+(ch.on?'<div style="position:absolute;bottom:-1px;right:-1px;width:8px;height:8px;background:var(--green-icon);border-radius:50%;border:2px solid var(--surface)"></div>':'')+'</div><div style="flex:1;min-width:0"><div class="sm w7 c1">'+ch.n+'</div><div class="xs c4 w5 trunc">'+ch.l+'</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="xs c4 w6">'+ch.tm+'</span>'+(ch.un>0?'<span class="badge badge-danger" style="padding:1px 5px;font-size:10px">'+ch.un+'</span>':'')+'</div>';
-    div.onclick = function() {
-      threadsEl.querySelectorAll('div[style*="padding:12px"]').forEach(function(d){ d.style.background='transparent'; });
-      div.style.background = 'var(--navy-25)';
-    };
-    threadsEl.appendChild(div);
-  });
+  var ROLE = {
+    partner: {label:'Delivery Partner', badge:'badge-teal',   icon:'ti-motorbike', av:'av-teal'},
+    sailor:  {label:'Sailor',           badge:'badge-purple', icon:'ti-anchor',    av:'av-purple'},
+  };
 
-  var messages = [
-    {f:'admin',t:'Green signal is live for order #ORD-0047. 3 items from Port Marine Supplies, JNPT Gate 3. Deliver to Berth 14-B.'},
-    {f:'partner',t:'Confirmed. Leaving for the store now.'},
-    {f:'admin',t:'Note: Item 3 is a hydraulic hose, JIC fittings. Verify spec before accepting — do NOT substitute without checking.'},
-    {f:'partner',t:'At the store. Rope and nav lights collected. Checking the hose with staff now.'},
-    {f:'partner',t:'They have BSP fittings only, not JIC. Take it or wait for back stock?'},
-    {f:'admin',t:'Wait for back stock. 10 minutes — if nothing, I will call the store directly.'},
-    {f:'partner',t:'Found 2 in the back — JIC, correct spec. All 3 items collected. Heading to Berth 14-B.'},
-    {f:'admin',t:'Perfect. Mark collected in the app. Ping me once at the berth.'},
+  var threads = [
+    {n:'Rahul Singh',id:'DP-00124',role:'partner',status:'On duty · ENQ-0042 delivering',l:'All 3 items collected. Heading now',tm:'2m',on:true,un:0},
+    {n:'Pita Havili',id:'DP-00087',role:'partner',status:'On duty · 2 active orders',l:'All items confirmed at shop',tm:'8m',on:true,un:2},
+    {n:'Marco Reyes',id:'DP-00201',role:'partner',status:'On duty · en route Berth 14-B',l:'Heading to Berth 14-B now',tm:'15m',on:true,un:0},
+    {n:'Lois Becket',id:'SLR-0012',role:'sailor',status:'MSC Marvela · Berth 7',l:'When will my order arrive?',tm:'5m',on:true,un:1},
+    {n:'Ali Mahmoud',id:'SLR-0048',role:'sailor',status:'APL Vanda · PSA',l:'Thanks for the quick help!',tm:'26m',on:false,un:0},
+    {n:'Sara Chen',id:'SLR-0093',role:'sailor',status:'OOCL Tokyo · Anchorage 2',l:'Can I add one more item?',tm:'1h',on:false,un:0},
   ];
+
+  var convos = {
+    partner: [
+      {f:'admin',t:'Green signal is live for ENQ-0042. 3 items from Port Marine Supplies, PSA. Deliver to Berth 7.'},
+      {f:'partner',t:'Confirmed. Leaving for the store now.'},
+      {f:'admin',t:'Verify the hose spec (JIC fittings) before accepting — do NOT substitute without checking.'},
+      {f:'partner',t:'At the store. All 3 items collected and confirmed.'},
+      {f:'admin',t:'Perfect. Mark collected in the app and ping me at the berth.'},
+    ],
+    sailor: [
+      {f:'admin',t:'Hi! Your order #AM2458 has been confirmed and is being prepared.'},
+      {f:'sailor',t:'Great, thank you. When will it arrive?'},
+      {f:'admin',t:'Your delivery partner is on the way — ETA around 12:30 PM at Berth 7.'},
+      {f:'sailor',t:'Perfect, I will be available there.'},
+    ],
+  };
+
+  var threadsEl = document.getElementById('chat-threads');
+  var headEl = document.getElementById('chat-head');
   var msgsEl = document.getElementById('chat-messages');
-  messages.forEach(function(m) {
-    var div = document.createElement('div');
-    div.style.cssText = 'display:flex;flex-direction:column;align-items:'+(m.f==='admin'?'flex-end':'flex-start');
-    div.innerHTML = '<div class="chat-bubble '+(m.f==='admin'?'sent':'recv')+'">'+m.t+'</div>';
-    msgsEl.appendChild(div);
-  });
-  msgsEl.scrollTop = msgsEl.scrollHeight;
+
+  function renderConversation(ch) {
+    var r = ROLE[ch.role];
+    headEl.innerHTML = '<div class="av '+r.av+'">'+ch.n[0]+'</div>' +
+      '<div style="flex:1;min-width:0"><div class="flex aic g8" style="margin-bottom:3px"><span class="w7 c1">'+ch.n+'</span><span class="badge '+r.badge+'"><i class="ti '+r.icon+'"></i>&nbsp;'+r.label+'</span></div>' +
+      '<div class="'+(ch.on?'sdot on xs csuccess':'xs c4 w6')+'">'+(ch.on?ch.status:'Offline')+'</div></div>' +
+      '<span class="badge badge-neutral mono">'+ch.id+'</span>' +
+      '<button class="btn btn-ghost btn-sm" onclick="toast(\'Chat archived\',\'\',\'archive\')"><i class="ti ti-archive"></i></button>' +
+      '<button class="btn btn-ghost btn-sm btn-icon" onclick="drawerProfile(\''+ch.n+'\',\''+ch.role+'\')"><i class="ti ti-user"></i></button>';
+    msgsEl.innerHTML = '';
+    convos[ch.role].forEach(function(m) {
+      var div = document.createElement('div');
+      div.style.cssText = 'display:flex;flex-direction:column;align-items:'+(m.f==='admin'?'flex-end':'flex-start');
+      div.innerHTML = '<div class="chat-bubble '+(m.f==='admin'?'sent':'recv')+'">'+m.t+'</div>';
+      msgsEl.appendChild(div);
+    });
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
+  function threadRowHtml(ch) {
+    var r = ROLE[ch.role];
+    return '<div style="position:relative"><div class="av '+r.av+'">'+ch.n[0]+'</div>'+(ch.on?'<div style="position:absolute;bottom:-1px;right:-1px;width:8px;height:8px;background:var(--green-icon);border-radius:50%;border:2px solid var(--surface)"></div>':'')+'</div>' +
+      '<div style="flex:1;min-width:0"><div class="sm w7 c1 trunc">'+ch.n+'</div><div class="xs c4 w5 trunc">'+ch.l+'</div></div>' +
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="xs c4 w6">'+ch.tm+'</span>'+(ch.un>0?'<span class="badge badge-danger" style="padding:1px 5px;font-size:10px">'+ch.un+'</span>':'')+'</div>';
+  }
+
+  function addSection(title, role) {
+    var hdr = document.createElement('div');
+    hdr.className = 'sec-label';
+    hdr.style.cssText = 'padding:14px 14px 7px;margin:0';
+    hdr.textContent = title;
+    threadsEl.appendChild(hdr);
+    threads.filter(function(t){ return t.role === role; }).forEach(function(ch) {
+      var div = document.createElement('div');
+      div.className = 'chat-thread';
+      div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border-xs);cursor:pointer';
+      div.innerHTML = threadRowHtml(ch);
+      div.onclick = function() {
+        threadsEl.querySelectorAll('.chat-thread').forEach(function(d){ d.style.background = 'transparent'; });
+        div.style.background = 'var(--navy-25)';
+        renderConversation(ch);
+      };
+      threadsEl.appendChild(div);
+    });
+  }
+
+  addSection('Delivery Partners', 'partner');
+  addSection('Sailors', 'sailor');
+
+  var first = threadsEl.querySelector('.chat-thread');
+  if (first) first.style.background = 'var(--navy-25)';
+  renderConversation(threads[0]);
 };
 
 PAGES.support = function(c) {
@@ -3268,20 +3687,11 @@ PAGES.support = function(c) {
   </div>
   <div class="stats-row">
     <div class="stat-card sc-red"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Open Tickets</div><div class="stat-icon"><i class="ti ti-lifebuoy"></i></div></div><div class="stat-val">18</div><div class="stat-foot"><span>4 urgent</span></div></div>
-    <div class="stat-card sc-amber"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Avg Response</div><div class="stat-icon"><i class="ti ti-clock"></i></div></div><div class="stat-val">2.4h</div><div class="stat-foot"><span>SLA: 4 hours</span></div></div>
-    <div class="stat-card sc-green"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Resolved (Week)</div><div class="stat-icon"><i class="ti ti-check"></i></div></div><div class="stat-val">47</div><div class="stat-foot"><span>94% satisfaction</span></div></div>
-    <div class="stat-card sc-navy"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Activity Logs Today</div><div class="stat-icon"><i class="ti ti-list-details"></i></div></div><div class="stat-val">1,284</div><div class="stat-foot"><span>All systems normal</span></div></div>
   </div>
-  <div class="grid-2">
-    <div class="card">
-      <div class="card-hd"><div class="card-ttl"><i class="ti ti-lifebuoy"></i>Open Tickets</div><button class="btn btn-primary btn-sm" onclick="modalTicket()"><i class="ti ti-plus"></i>New</button></div>
-      <div class="tbl-wrap">
-        <table><thead><tr><th>Ticket</th><th>From</th><th>Issue</th><th>Priority</th><th>Action</th></tr></thead><tbody id="tickets-body"></tbody></table>
-      </div>
-    </div>
-    <div class="card" style="display:flex;flex-direction:column">
-      <div class="card-hd"><div class="card-ttl"><i class="ti ti-activity"></i>Live Activity Log</div><span class="sdot on sm w6 csuccess">Live</span></div>
-      <div style="flex:1;overflow-y:auto;padding:8px 18px 16px;max-height:420px" id="activity-log"></div>
+  <div class="card">
+    <div class="card-hd"><div class="card-ttl"><i class="ti ti-lifebuoy"></i>Open Tickets</div><button class="btn btn-primary btn-sm" onclick="modalTicket()"><i class="ti ti-plus"></i>New</button></div>
+    <div class="tbl-wrap">
+      <table><thead><tr><th>Ticket</th><th>From</th><th>Issue</th><th>Action</th></tr></thead><tbody id="tickets-body"></tbody></table>
     </div>
   </div>`;
 
@@ -3296,30 +3706,10 @@ PAGES.support = function(c) {
   tickets.forEach(function(t) {
     var tr = document.createElement('tr');
     tr.className = 'tr-click';
-    tr.innerHTML = '<td class="td-id">'+t.id+'</td><td class="sm c3 w6">'+t.f+'</td><td class="sm c3 w5">'+t.i+'</td><td><span class="badge badge-'+t.sc+'">'+t.p+'</span></td><td><button class="btn btn-ghost btn-xs">Open</button></td>';
+    tr.innerHTML = '<td class="td-id">'+t.id+'</td><td class="sm c3 w6">'+t.f+'</td><td class="sm c3 w5">'+t.i+'</td><td><button class="btn btn-ghost btn-xs">Open</button></td>';
     tr.onclick = function() { modalTicket({id:t.id,from:t.f,issue:t.i,priority:t.p,type:'Sailor'}); };
     tr.querySelector('button').onclick = function(e){ e.stopPropagation(); modalTicket({id:t.id,from:t.f,issue:t.i,priority:t.p,type:'Sailor'}); };
     tbody.appendChild(tr);
-  });
-
-  var logs = [
-    {a:'Order #AM2468 placed',u:'Maria Santos',tm:'14:32:01',c:'var(--teal-500)'},
-    {a:'ENQ-0042 marked delivered',u:'Rahul Singh (DP)',tm:'14:30:12',c:'var(--green-icon)'},
-    {a:'Payment $84 processed',u:'Lois Becket',tm:'14:28:45',c:'var(--green-icon)'},
-    {a:'Coupon SHIP10 redeemed',u:'Ali Mahmoud',tm:'14:25:10',c:'var(--amber-400)'},
-    {a:'Intent #INT-0051 submitted',u:'Ravi Patel',tm:'14:20:03',c:'var(--info-icon)'},
-    {a:'DP-00124 went on duty',u:'Rahul Singh',tm:'14:10:22',c:'var(--teal-500)'},
-    {a:'Product Aquaminder flagged OOS',u:'System',tm:'14:02:11',c:'var(--danger-icon)'},
-    {a:'Order #AM2451 cancelled',u:'Maria Santos',tm:'13:55:34',c:'var(--danger-icon)'},
-    {a:'Seller application received',u:'Blue Ocean Supplies',tm:'13:45:00',c:'var(--purple-icon)'},
-    {a:'Intent verified — ENQ-0047',u:'Admin',tm:'13:40:11',c:'var(--teal-500)'},
-  ];
-  var logEl = document.getElementById('activity-log');
-  logs.forEach(function(l) {
-    var div = document.createElement('div');
-    div.className = 'feed-row';
-    div.innerHTML = '<div class="feed-dot" style="background:'+l.c+'"></div><div class="f1"><div class="feed-txt">'+l.a+'</div><div class="feed-sub">'+l.u+'</div></div><div class="feed-time">'+l.tm+'</div>';
-    logEl.appendChild(div);
   });
 };
 
@@ -3337,20 +3727,17 @@ PAGES.sellers = function(c) {
   <div class="card" id="sellers-table"></div>`;
 
   var sellers = [
-    {n:'James Wren',e:'jwren@shipco.net',b:'Marine Supplies Co.',p:'Marine equipment, safety gear',d:'Uploaded',dt:'Apr 22',s:'Pending',sc:'warning'},
-    {n:'Sara Chen',e:'sara.c@marine.io',b:'Blue Ocean Supplies',p:'Electronics, accessories',d:'Uploaded',dt:'Apr 20',s:'Reviewing',sc:'info'},
-    {n:'Omar Karim',e:'omar@porttrader.com',b:'Port Trader Ltd.',p:'Beverages, snacks',d:'Missing',dt:'Apr 18',s:'Pending',sc:'warning'},
-    {n:'Maria Santos',e:'msantos@seafarer.ph',b:'—',p:'Fashion, accessories',d:'Uploaded',dt:'Apr 15',s:'Approved',sc:'success'},
+    {n:'James Wren',fn:'James',ln:'Wren',e:'jwren@shipco.net',ph:'+65 8123 0090',b:'Marine Supplies Co.',p:'Marine equipment and safety gear — life jackets, flares, ropes, and SOLAS-approved emergency kits sourced from certified suppliers.',d:'Uploaded',doc:'business-license.pdf',dt:'Apr 22',s:'Pending',sc:'warning'},
+    {n:'Sara Chen',fn:'Sara',ln:'Chen',e:'sara.c@marine.io',ph:'+65 9034 7781',b:'Blue Ocean Supplies',p:'Consumer electronics and accessories — power banks, earbuds, smart speakers and charging gear for crew members.',d:'Uploaded',doc:'gst-registration.pdf',dt:'Apr 20',s:'Reviewing',sc:'info'},
+    {n:'Omar Karim',fn:'Omar',ln:'Karim',e:'omar@porttrader.com',ph:'+65 8456 2310',b:'Port Trader Ltd.',p:'Beverages and snacks — bottled water, soft drinks, packaged snacks and quick everyday essentials.',d:'Missing',doc:'',dt:'Apr 18',s:'Pending',sc:'warning'},
+    {n:'Maria Santos',fn:'Maria',ln:'Santos',e:'msantos@seafarer.ph',ph:'+63 917 220 4455',b:'—',p:'Fashion and accessories — apparel, footwear, watches and personal lifestyle products.',d:'Uploaded',doc:'id-proof.pdf',dt:'Apr 15',s:'Approved',sc:'success'},
   ];
   var rows = sellers.map(function(s) {
     return '<tr class="tr-click">' +
       '<td><div class="flex aic g10"><div class="av av-purple">'+s.n[0]+'</div><span class="td-p">'+s.n+'</span></div></td>' +
       '<td class="td-m">'+s.e+'</td>' +
       '<td class="w7 c1">'+s.b+'</td>' +
-      '<td class="td-m" style="max-width:150px"><span class="trunc" style="display:block">'+s.p+'</span></td>' +
-      '<td><span class="badge badge-'+(s.d==='Uploaded'?'success':'danger')+'">'+s.d+'</span></td>' +
       '<td class="td-m">'+s.dt+'</td>' +
-      '<td><span class="badge badge-'+s.sc+'">'+s.s+'</span></td>' +
       '<td><div class="td-acts">' +
         '<button class="btn btn-success btn-sm" data-action="approve"><i class="ti ti-check"></i>Approve</button>' +
         '<button class="btn btn-danger btn-sm" data-action="reject"><i class="ti ti-x"></i>Reject</button>' +
@@ -3358,15 +3745,48 @@ PAGES.sellers = function(c) {
   }).join('');
 
   document.getElementById('sellers-table').innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th>Applicant</th><th>Email</th><th>Business</th><th>Products</th><th>Documents</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    '<div class="tbl-wrap"><table><thead><tr><th>Applicant</th><th>Email</th><th>Business</th><th>Submitted</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 
   document.getElementById('sellers-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
     var s = sellers[i];
-    tr.onclick = function() { modalSellerReview({n:s.n,b:s.b,p:s.p}, false); };
+    tr.onclick = function() { modalSellerDetail(s); };
     tr.querySelector('[data-action="approve"]').onclick = function(e){ e.stopPropagation(); modalSellerReview({n:s.n,b:s.b,p:s.p}, true); };
     tr.querySelector('[data-action="reject"]').onclick  = function(e){ e.stopPropagation(); modalSellerReview({n:s.n,b:s.b,p:s.p}, false); };
   });
 };
+
+/* ── SELLER APPLICATION DETAIL MODAL ── */
+var _sellerReviewing = null;
+function modalSellerDetail(s) {
+  s = s || {};
+  _sellerReviewing = s;
+  var docHtml = (s.d === 'Uploaded')
+    ? '<div class="srq-img"><i class="ti ti-file-text"></i><span>' + (s.doc || 'business-document.pdf') + '</span></div>'
+    : '<div class="srq-img empty"><i class="ti ti-file-off"></i><span>No documents uploaded</span></div>';
+  showModal({
+    title: 'Seller Application',
+    sub: (s.b && s.b !== '—') ? s.b : ((s.fn||'') + ' ' + (s.ln||'')).trim(),
+    icon: 'building-store', iconBg:'var(--purple-bg)', iconColor:'var(--purple-icon)',
+    size: 'lg',
+    body: `
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">First Name</label><div class="ecard">${s.fn||'—'}</div></div>
+        <div class="fg"><label class="fg-label">Last Name</label><div class="ecard">${s.ln||'—'}</div></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">Email</label><div class="ecard">${s.e||'—'}</div></div>
+        <div class="fg"><label class="fg-label">Contact Number</label><div class="ecard">${s.ph||'—'}</div></div>
+      </div>
+      <div class="fg"><label class="fg-label">Business / Store Name (Optional)</label><div class="ecard">${(s.b && s.b !== '—') ? s.b : '—'}</div></div>
+      <div class="fg"><label class="fg-label">Product Information & Description</label><div class="ecard" style="line-height:1.5">${s.p||'—'}</div></div>
+      <div class="fg"><label class="fg-label">Business Documents (Optional)</label>${docHtml}</div>
+    `,
+    footer: `
+      <button class="btn btn-danger" onclick="modalSellerReview(_sellerReviewing, false)"><i class="ti ti-x"></i>Reject</button>
+      <button class="btn btn-success" onclick="modalSellerReview(_sellerReviewing, true)"><i class="ti ti-check"></i>Accept</button>
+    `
+  });
+}
 
 PAGES.settings = function(c) {
   c.innerHTML = `
@@ -3383,11 +3803,7 @@ PAGES.settings = function(c) {
         <div class="fg"><label class="fg-label">Loyalty points per delivery</label><input class="form-input" value="250"></div>
         <div class="fg"><label class="fg-label">Referral bonus points</label><input class="form-input" value="500"></div>
         <div class="fg"><label class="fg-label">Points to $ conversion rate</label><input class="form-input" value="100 pts = $1.00"></div>
-        <div class="fg"><label class="fg-label">Max special request description</label><input class="form-input" value="500 characters"></div>
-        <div class="divider"></div>
-        <div class="fg"><label class="switch"><input type="checkbox" checked><div class="switch-track"></div><span class="switch-label">Enable Express Delivery</span></label></div>
-        <div class="fg"><label class="switch"><input type="checkbox" checked><div class="switch-track"></div><span class="switch-label">Auto-assign partner to new orders</span></label></div>
-        <div class="fg mb0"><label class="switch"><input type="checkbox"><div class="switch-track"></div><span class="switch-label">Maintenance mode</span></label></div>
+        <div class="fg mb0"><label class="fg-label">Max special request description</label><input class="form-input" value="500 characters"></div>
       </div>
     </div>
     <div>
