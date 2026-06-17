@@ -947,23 +947,7 @@ PAGES.dashboard = function(c) {
     </div>
   </div>
 
-  <div class="grid-2 mb20" style="grid-template-columns:2fr 1fr">
-    <div class="card">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-package"></i>Live Orders</div>
-        <div class="card-acts">
-          <span class="sdot on sm w6 csuccess">Real-time</span>
-          <button class="btn btn-ghost btn-sm" onclick="goTo('orders')">View all <i class="ti ti-arrow-right"></i></button>
-        </div>
-      </div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>Order ID</th><th>Sailor</th><th>Ship / Port</th><th>Partner</th><th>Status</th><th>Total</th><th></th></tr></thead>
-          <tbody id="live-orders-body"></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="card">
+  <div class="card">
       <div class="card-hd">
         <div class="card-ttl"><i class="ti ti-activity"></i>Activity Feed</div>
         <span class="sdot on sm w6 csuccess">Live</span>
@@ -1026,35 +1010,6 @@ PAGES.dashboard = function(c) {
   </div>`;
 
   /* ── Populate dynamic sections (no onclick string escaping) ── */
-  var liveOrders = [
-    {id:'#AM2458',s:'Lois Becket',p:'Anchorage 2 · PSA',pt:'Rahul Singh',st:'In Progress',sc:'warning',t:'$84.00'},
-    {id:'#AM2461',s:'Ali Mahmoud',p:'MSC Marvela · B7',pt:'Rahul Singh',st:'Verifying',sc:'info',t:'$70.45'},
-    {id:'#AM2463',s:'James Wren',p:'Evergreen · Brani',pt:'Pita Havili',st:'Delivering',sc:'teal',t:'$48.00'},
-    {id:'#AM2465',s:'Sara Chen',p:'APL Vanda · PSA',pt:'Marco Reyes',st:'Delivered',sc:'success',t:'$94.99'},
-    {id:'#AM2467',s:'Ravi Patel',p:'IMO 0123456 · PSA',pt:'Unassigned',st:'New',sc:'neutral',t:'$32.00'},
-  ];
-  var tbody = document.getElementById('live-orders-body');
-  liveOrders.forEach(function(o) {
-    var tr = document.createElement('tr');
-    tr.className = 'tr-click';
-    var ptColor = o.pt === 'Unassigned' ? 'var(--danger-text)' : 'var(--t3)';
-    tr.innerHTML =
-      '<td class="td-id">' + o.id + '</td>' +
-      '<td><div class="flex aic g8"><div class="av av-sm av-navy">' + o.s[0] + '</div><span class="td-p">' + o.s + '</span></div></td>' +
-      '<td class="td-m">' + o.p + '</td>' +
-      '<td style="color:' + ptColor + ';font-size:12.5px;font-weight:600">' + o.pt + '</td>' +
-      '<td><span class="badge badge-' + o.sc + '">' + o.st + '</span></td>' +
-      '<td class="td-p w7">' + o.t + '</td>' +
-      '<td><button class="btn btn-ghost btn-sm btn-icon" title="View detail"><i class="ti ti-eye"></i></button></td>';
-    tr.querySelector('.tr-click, tr') && (tr.onclick = function() {
-      drawerOrderDetail({id:o.id,sailor:o.s,ship:'0123456',terminal:'Anchorage 2',partner:o.pt,payment:'Card · Paid',coupon:'SHIP10',total:o.t,status:o.st,items:[{name:'Titan Watch',qty:1,price:'$75.00'},{name:'Card Holder',qty:1,price:'$12.00'}]});
-    });
-    tr.querySelector('button') && tr.querySelector('button').addEventListener('click', function(e) {
-      e.stopPropagation();
-      drawerOrderDetail({id:o.id,sailor:o.s,ship:'0123456',terminal:'Anchorage 2',partner:o.pt,payment:'Card · Paid',coupon:'SHIP10',total:o.t,status:o.st,items:[{name:'Titan Watch',qty:1,price:'$75.00'}]});
-    });
-    tbody.appendChild(tr);
-  });
 
   /* Activity feed */
   var feedData = [
