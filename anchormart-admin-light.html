@@ -1091,11 +1091,6 @@ textarea.form-input { height: auto; padding: 10px 12px; resize: vertical; line-h
       </div>
       <div class="lh-headline">The command<br>bridge for your<br>maritime ops.</div>
       <div class="lh-desc">Complete visibility across sailor orders, delivery partner operations, inventory, and real-time port logistics.</div>
-      <div class="lh-stats">
-        <div class="lh-stat"><div class="lh-stat-val">2,847</div><div class="lh-stat-lbl">Active Sailors</div></div>
-        <div class="lh-stat"><div class="lh-stat-val">64</div><div class="lh-stat-lbl">Delivery Partners</div></div>
-        <div class="lh-stat"><div class="lh-stat-val">96.8%</div><div class="lh-stat-lbl">Success Rate</div></div>
-      </div>
     </div>
 
     <div class="login-form">
@@ -1123,14 +1118,12 @@ textarea.form-input { height: auto; padding: 10px 12px; resize: vertical; line-h
           <div class="fi-err" id="e-pass"><i class="ti ti-alert-circle"></i>Password must be at least 6 characters.</div>
         </div>
         <div class="l-row">
-          <label class="l-check"><input type="checkbox" checked>&nbsp;Remember me for 30 days</label>
           <span class="l-link" onclick="showStep('s-forgot')">Forgot password?</span>
         </div>
         <button class="l-btn" id="l-btn" onclick="doLogin()">
           <div class="spin"></div>
           <span class="lbl"><i class="ti ti-login" style="font-size:17px"></i>&nbsp; Sign In to Console</span>
         </button>
-        <div class="lf-footer">Need access? <a>Contact your administrator</a></div>
       </div>
 
       <!-- Step 2: Forgot password -->
@@ -1201,7 +1194,6 @@ textarea.form-input { height: auto; padding: 10px 12px; resize: vertical; line-h
       <div class="nav-item" onclick="navigate('intents',this)" data-page="intents"><i class="ti ti-file-invoice"></i>Intents<span class="nav-badge warning mla">8</span></div>
       <div class="nav-item" onclick="navigate('requests',this)" data-page="requests"><i class="ti ti-clipboard-text"></i>Special Requests<span class="nav-badge warning mla">5</span></div>
       <div class="nav-item" onclick="navigate('products',this)" data-page="products"><i class="ti ti-box-seam"></i>Products</div>
-      <div class="nav-item" onclick="navigate('spares',this)" data-page="spares"><i class="ti ti-engine"></i>Marine Emergency Spares</div>
       <div class="nav-item" onclick="navigate('express',this)" data-page="express"><i class="ti ti-bolt"></i>Express Items</div>
       <div class="nav-item" onclick="navigate('rewards',this)" data-page="rewards"><i class="ti ti-star"></i>Rewards &amp; Coupons</div>
       <div class="sb-section">Delivery App</div>
@@ -1357,7 +1349,6 @@ var PAGE_TITLES = {
   intents:      'Intent Requests',
   requests:     'Special Request Items',
   products:     'Products & Catalog',
-  spares:       'Marine Emergency Spares',
   express:      'Express Items',
   rewards:      'Rewards & Coupons',
   partners:     'Delivery Partners',
@@ -2448,179 +2439,79 @@ PAGES.dashboard = function(c) {
       <p class="pg-sub"><span class="sdot on">Live monitoring</span><span class="sep">·</span><span>Friday, 29 May 2026</span></p>
     </div>
     <div class="pg-actions">
-      <div class="pill-toggle">
-        <div class="pill-btn active" onclick="segClick(this)">Today</div>
-        <div class="pill-btn" onclick="segClick(this)">Week</div>
-        <div class="pill-btn" onclick="segClick(this)">Month</div>
-      </div>
-      <button class="btn btn-secondary btn-sm" onclick="openDateRange()"><i class="ti ti-calendar"></i>Date Range</button>
       <button class="btn btn-secondary btn-sm" onclick="refreshPage()"><i class="ti ti-refresh"></i>Refresh</button>
-      <button class="btn btn-primary btn-sm" onclick="exportData('PDF')"><i class="ti ti-download"></i>Export</button>
+      <button class="btn btn-primary btn-sm" onclick="exportData('Excel')"><i class="ti ti-download"></i>Export to Excel</button>
     </div>
   </div>
 
-  <div class="stats-row cols-7">
+  <div class="stats-row">
     <div class="stat-card sc-navy" onclick="goTo('sailors')" style="cursor:pointer">
       <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">Total Sailors</div><div class="stat-icon"><i class="ti ti-users"></i></div></div>
+      <div class="stat-top"><div class="stat-lbl">Sailors</div><div class="stat-icon"><i class="ti ti-users"></i></div></div>
       <div class="stat-val">2,847</div>
       <div class="stat-foot"><span class="stat-delta up"><i class="ti ti-trending-up"></i>14.2%</span><span>vs last month</span></div>
     </div>
     <div class="stat-card sc-teal" onclick="goTo('partners')" style="cursor:pointer">
       <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">Active Partners</div><div class="stat-icon"><i class="ti ti-motorbike"></i></div></div>
+      <div class="stat-top"><div class="stat-lbl">Delivery Partners</div><div class="stat-icon"><i class="ti ti-motorbike"></i></div></div>
       <div class="stat-val">38</div>
-      <div class="stat-foot"><span class="sdot on xs w6 csuccess">28 on duty now</span></div>
+      <div class="stat-foot"><span class="sdot on xs w6 csuccess">28 on duty</span></div>
     </div>
     <div class="stat-card sc-blue" onclick="goTo('orders')" style="cursor:pointer">
       <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">Orders Today</div><div class="stat-icon"><i class="ti ti-package"></i></div></div>
+      <div class="stat-top"><div class="stat-lbl">Orders</div><div class="stat-icon"><i class="ti ti-package"></i></div></div>
       <div class="stat-val">184</div>
       <div class="stat-foot"><span class="stat-delta up"><i class="ti ti-trending-up"></i>8.1%</span><span>vs yesterday</span></div>
     </div>
-    <div class="stat-card sc-amber" onclick="goTo('orders')" style="cursor:pointer">
+    <div class="stat-card sc-purple" onclick="goTo('products')" style="cursor:pointer">
       <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">In Progress</div><div class="stat-icon"><i class="ti ti-loader-2"></i></div></div>
-      <div class="stat-val">47</div>
-      <div class="stat-foot"><span>12 awaiting payment</span></div>
+      <div class="stat-top"><div class="stat-lbl">Products</div><div class="stat-icon"><i class="ti ti-box-seam"></i></div></div>
+      <div class="stat-val">1,240</div>
+      <div class="stat-foot"><span>Total SKUs</span></div>
     </div>
-    <div class="stat-card sc-red" onclick="goTo('orders')" style="cursor:pointer">
+    <div class="stat-card sc-amber" onclick="goTo('assignments')" style="cursor:pointer">
       <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">Cancelled</div><div class="stat-icon"><i class="ti ti-circle-x"></i></div></div>
+      <div class="stat-top"><div class="stat-lbl">Assignments</div><div class="stat-icon"><i class="ti ti-clipboard-list"></i></div></div>
+      <div class="stat-val">47</div>
+      <div class="stat-foot"><span>Active assignments</span></div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card sc-red" onclick="goTo('verification')" style="cursor:pointer">
+      <div class="stat-stripe"></div>
+      <div class="stat-top"><div class="stat-lbl">Verifications</div><div class="stat-icon"><i class="ti ti-checklist"></i></div></div>
       <div class="stat-val">6</div>
-      <div class="stat-foot"><span>3 pending refund</span></div>
+      <div class="stat-foot"><span>Pending review</span></div>
     </div>
     <div class="stat-card sc-purple" onclick="goTo('intents')" style="cursor:pointer">
       <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">Intents Received</div><div class="stat-icon"><i class="ti ti-file-invoice"></i></div></div>
+      <div class="stat-top"><div class="stat-lbl">Intents</div><div class="stat-icon"><i class="ti ti-file-invoice"></i></div></div>
       <div class="stat-val">23</div>
-      <div class="stat-foot"><span>Total order intents</span></div>
+      <div class="stat-foot"><span>Total intents</span></div>
     </div>
-    <div class="stat-card sc-amber" onclick="goTo('intents')" style="cursor:pointer">
+    <div class="stat-card sc-navy" onclick="goTo('requests')" style="cursor:pointer">
       <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">Pending Intents</div><div class="stat-icon"><i class="ti ti-clock"></i></div></div>
-      <div class="stat-val">8</div>
+      <div class="stat-top"><div class="stat-lbl">Special Requests</div><div class="stat-icon"><i class="ti ti-clipboard-text"></i></div></div>
+      <div class="stat-val">5</div>
       <div class="stat-foot"><span>Awaiting review</span></div>
     </div>
-  </div>
-
-  <div class="mb20">
-    <div class="card">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-chart-bar"></i>Revenue — Last 14 Days</div>
-        <div class="card-acts">
-          <div class="pill-toggle">
-            <div class="pill-btn active" onclick="segClick(this)">Daily</div>
-            <div class="pill-btn" onclick="segClick(this)">Weekly</div>
-          </div>
-          <button class="btn btn-ghost btn-sm" onclick="exportData('CSV')"><i class="ti ti-download"></i></button>
-        </div>
-      </div>
-      <div class="metric-row">
-        <div class="metric-item"><div class="metric-lbl">Total</div><div class="metric-val" style="color:var(--teal-700)">$168.2k</div></div>
-      </div>
-      <div class="card-body" id="revenue-chart"></div>
+    <div class="stat-card sc-green" onclick="goTo('express')" style="cursor:pointer">
+      <div class="stat-stripe"></div>
+      <div class="stat-top"><div class="stat-lbl">Express Items</div><div class="stat-icon"><i class="ti ti-bolt"></i></div></div>
+      <div class="stat-val">124</div>
+      <div class="stat-foot"><span>High priority</span></div>
     </div>
-  </div>
-
-  <div class="grid-3">
-    <div class="card">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-award"></i>Top Products</div>
-        <button class="btn btn-ghost btn-sm" onclick="goTo('products')">View all <i class="ti ti-arrow-right"></i></button>
-      </div>
-      <div class="card-body-sm" id="top-products"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-motorbike"></i>Active Partners</div>
-        <button class="btn btn-ghost btn-sm" onclick="goTo('partners')">View all <i class="ti ti-arrow-right"></i></button>
-      </div>
-      <div class="card-body-sm" id="active-partners"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-alert-circle"></i>Action Required</div>
-        <span class="badge badge-danger">7 open</span>
-      </div>
-      <div class="card-body-sm" id="action-required"></div>
+    <div class="stat-card sc-teal" onclick="goTo('rewards')" style="cursor:pointer">
+      <div class="stat-stripe"></div>
+      <div class="stat-top"><div class="stat-lbl">Rewards</div><div class="stat-icon"><i class="ti ti-star"></i></div></div>
+      <div class="stat-val">128</div>
+      <div class="stat-foot"><span>Active coupons</span></div>
     </div>
   </div>`;
 
   /* ── Populate dynamic sections (no onclick string escaping) ── */
 
-  /* Revenue chart */
-  var chartVals = [48,62,55,80,70,95,84,110,88,102,114,98,128,112];
-  var chartDays = [16,17,18,19,20,21,22,23,24,25,26,27,28,29];
-  var chartHtml = '<div class="bar-chart" style="height:120px">';
-  chartVals.forEach(function(h, i) {
-    var cls = i >= 7 ? 'hi' : 'amber';
-    chartHtml += '<div class="chart-bar ' + cls + '" style="height:' + (h/1.3).toFixed(1) + '%" title="May ' + chartDays[i] + ': $' + (h*145).toLocaleString() + '" onclick="toast(\'May ' + chartDays[i] + ': $' + (h*145).toLocaleString() + '\',\'\',\'chart-bar\')"></div>';
-  });
-  chartHtml += '</div><div class="chart-labels">';
-  chartDays.forEach(function(d) { chartHtml += '<div class="chart-label">May ' + d + '</div>'; });
-  chartHtml += '</div>';
-  document.getElementById('revenue-chart').innerHTML = chartHtml;
-
-  /* Top products */
-  var products = [
-    {n:'Echo Dot 5th Gen',c:'Electronics',o:34,ic:'ti-device-speaker'},
-    {n:'Lavazza Coffee',c:'Beverages',o:28,ic:'ti-cup'},
-    {n:'Cureskin Tablets',c:'Beauty',o:22,ic:'ti-pill'},
-    {n:'Bisleri Water 1L',c:'Express',o:19,ic:'ti-droplet'},
-    {n:'Titan Quartz Watch',c:'Accessories',o:16,ic:'ti-watch'},
-    {n:'Bombay Shaving Kit',c:'Beauty',o:14,ic:'ti-tool'},
-  ];
-  var prodHtml = '';
-  products.forEach(function(p, i) {
-    prodHtml += '<div class="flex aic g10 mb12" style="cursor:pointer" onclick="goTo(\'products\')">' +
-      '<span class="xs c4 w7" style="width:16px">' + (i+1) + '</span>' +
-      '<div class="prod-thumb" style="width:32px;height:32px;font-size:14px"><i class="ti ' + p.ic + '"></i></div>' +
-      '<div class="f1 mw0"><div class="sm w7 c1 trunc">' + p.n + '</div><div class="xs c4">' + p.c + '</div></div>' +
-      '<span class="badge badge-teal">' + p.o + '</span></div>';
-  });
-  document.getElementById('top-products').innerHTML = prodHtml;
-
-  /* Active partners */
-  var partners = [
-    {n:'Rahul Singh',id:'DP-00124',d:3,st:'Delivering',sc:'teal'},
-    {n:'Pita Havili',id:'DP-00087',d:2,st:'Verifying',sc:'warning'},
-    {n:'Marco Reyes',id:'DP-00201',d:1,st:'Delivering',sc:'teal'},
-    {n:'Aisha Karimi',id:'DP-00056',d:0,st:'Available',sc:'success'},
-  ];
-  var partHtml = '';
-  partners.forEach(function(d) {
-    partHtml += '<div class="flex aic g10 mb14" style="cursor:pointer" onclick="drawerProfile(\'' + d.n + '\',\'partner\')">' +
-      '<div class="av av-teal">' + d.n[0] + '</div>' +
-      '<div class="f1 mw0"><div class="sm w7 c1">' + d.n + '</div>' +
-      '<div class="xs c4">' + d.id + (d.d > 0 ? ' · ' + d.d + ' active' : ' · free') + '</div></div>' +
-      '<span class="badge badge-' + d.sc + '" style="font-size:10.5px">' + d.st + '</span></div>';
-  });
-  partHtml += '<div class="divider mb12"></div><div class="flex aic jb xs"><span class="c4 w6">Weekly partner earnings</span><span class="w8 camber">$3,400</span></div>';
-  document.getElementById('active-partners').innerHTML = partHtml;
-
-  /* Action required */
-  var actions = [
-    {icon:'ti-clock',bg:'var(--warning-bg)',c:'var(--warning-icon)',t:'12 orders awaiting payment',s:'48hr window expiring soon',pg:'orders',bl:'Review'},
-    {icon:'ti-package-off',bg:'var(--danger-bg)',c:'var(--danger-icon)',t:'3 items out of stock',s:'Admin substitution needed',pg:'products',bl:'Fix'},
-    {icon:'ti-map-pin',bg:'var(--info-bg)',c:'var(--info-icon)',t:'2 location changes post-payment',s:'Additional charges required',pg:'orders',bl:'Review'},
-    {icon:'ti-building-store',bg:'var(--purple-bg)',c:'var(--purple-icon)',t:'4 seller applications pending',s:'Review required',pg:'sellers',bl:'Open'},
-    {icon:'ti-file-invoice',bg:'var(--success-bg)',c:'var(--success-icon)',t:'8 new intent requests',s:'Awaiting availability check',pg:'intents',bl:'Review'},
-  ];
-  var actEl = document.getElementById('action-required');
-  actions.forEach(function(a) {
-    var row = document.createElement('div');
-    row.className = 'flex ais g10 mb12';
-    row.innerHTML =
-      '<div style="width:32px;height:32px;background:' + a.bg + ';color:' + a.c + ';border-radius:var(--radius-sm);font-size:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center"><i class="ti ' + a.icon + '"></i></div>' +
-      '<div class="f1 mw0"><div class="sm w7 c1">' + a.t + '</div><div class="xs c4">' + a.s + '</div></div>';
-    var btn = document.createElement('button');
-    btn.className = 'btn btn-ghost btn-xs';
-    btn.textContent = a.bl;
-    btn.onclick = function() { goTo(a.pg); };
-    row.appendChild(btn);
-    actEl.appendChild(row);
-  });
 };
 
 /* ─── ANALYTICS ─── */
@@ -3050,114 +2941,6 @@ PAGES.products = function(c) {
     tr.querySelector('[data-action="del"]').onclick  = function(e){ e.stopPropagation(); showConfirm({title:'Remove Product', msg:'Remove "'+p.n+'"? Cannot be undone.', danger:true, confirmText:'Remove'}, function(){ toast('Product removed', 'danger', 'trash'); }); };
   });
 };
-
-/* ─── MARINE EMERGENCY SPARES ─── */
-PAGES.spares = function(c) {
-  c.innerHTML = `
-  <div class="pg-header">
-    <div class="pg-header-l"><h1 class="pg-title">Marine Emergency Spares</h1><p class="pg-sub"><span>Critical emergency spare parts available to sailors</span></p></div>
-    <div class="pg-actions">
-      <div class="input-wrap"><i class="ti ti-search pre"></i><input type="text" class="form-input has-icon" placeholder="Search spare parts…" style="width:200px"></div>
-      <select class="form-select"><option>All Types</option><option>Engine</option><option>Safety</option><option>Fire Safety</option><option>Navigation</option><option>Signaling</option><option>Medical</option><option>Deck</option></select>
-      <select class="form-select"><option>All Status</option><option>In Stock</option><option>Low Stock</option><option>Out of Stock</option></select>
-      <button class="btn btn-primary" onclick="modalAddSpare()"><i class="ti ti-plus"></i>Add Product</button>
-    </div>
-  </div>
-  <div class="stats-row">
-    <div class="stat-card sc-navy"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Total Spare Parts</div><div class="stat-icon"><i class="ti ti-engine"></i></div></div><div class="stat-val">86</div><div class="stat-foot"><span>7 types</span></div></div>
-  </div>
-  <div class="card" id="spares-table"></div>`;
-
-  var spares = [
-    {ic:'ti-lifebuoy',n:'SOLAS Life Jacket',d:'Adult, 150N buoyancy, approved',c:'Safety',pn:'SP-SAF-001',p:'$48.00',sk:120,s:'In Stock',sc:'success'},
-    {ic:'ti-flame',n:'CO₂ Fire Extinguisher 5kg',d:'Marine grade, wall mount',c:'Fire Safety',pn:'SP-FIR-014',p:'$96.50',sk:34,s:'In Stock',sc:'success'},
-    {ic:'ti-flare',n:'Emergency Flare Kit',d:'4 red parachute + 2 smoke',c:'Signaling',pn:'SP-SIG-007',p:'$120.00',sk:8,s:'Low Stock',sc:'warning'},
-    {ic:'ti-filter',n:'Engine Oil Filter (MAN B&W)',d:'Spin-on, fits 6S60MC',c:'Engine',pn:'SP-ENG-022',p:'$32.75',sk:0,s:'Out of Stock',sc:'danger'},
-    {ic:'ti-droplet',n:'Bilge Pump 12V',d:'2000 GPH submersible',c:'Engine',pn:'SP-ENG-031',p:'$74.00',sk:16,s:'In Stock',sc:'success'},
-    {ic:'ti-broadcast',n:'EPIRB Distress Beacon',d:'406 MHz, GPS enabled',c:'Navigation',pn:'SP-NAV-003',p:'$340.00',sk:5,s:'Low Stock',sc:'warning'},
-    {ic:'ti-first-aid-kit',n:'Marine First Aid Kit',d:'SOLAS category C, 50+ items',c:'Medical',pn:'SP-MED-009',p:'$58.00',sk:42,s:'In Stock',sc:'success'},
-    {ic:'ti-jacket',n:'Immersion / Survival Suit',d:'Insulated, one size, SOLAS',c:'Safety',pn:'SP-SAF-018',p:'$185.00',sk:0,s:'Out of Stock',sc:'danger'},
-  ];
-
-  var rows = spares.map(function(p) {
-    return '<tr class="tr-click">' +
-      '<td><div class="prod-thumb"><i class="ti '+p.ic+'"></i></div></td>' +
-      '<td><div class="td-p">'+p.n+'</div><div class="td-m">'+p.d+'</div></td>' +
-      '<td><span class="badge badge-navy">'+p.c+'</span></td>' +
-      '<td class="td-m mono">'+p.pn+'</td>' +
-      '<td class="td-p w7">'+p.p+'</td>' +
-      '<td><span class="badge badge-'+p.sc+'">'+p.s+'</span></td>' +
-      '<td><div class="td-acts">' +
-        '<button class="btn btn-ghost btn-sm btn-icon" data-action="edit" title="Edit"><i class="ti ti-edit"></i></button>' +
-        '<button class="btn btn-danger btn-sm btn-icon" data-action="del" title="Remove"><i class="ti ti-trash"></i></button>' +
-      '</div></td></tr>';
-  }).join('');
-
-  document.getElementById('spares-table').innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th></th><th>Spare Part</th><th>Type</th><th>Part No.</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
-
-  document.getElementById('spares-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
-    var p = spares[i];
-    tr.onclick = function() { modalAddSpare({name:p.n, desc:p.d, type:p.c, price:p.p.replace('$','').replace('€',''), stock:String(p.sk), pn:p.pn}); };
-    tr.querySelector('[data-action="edit"]').onclick = function(e){ e.stopPropagation(); modalAddSpare({name:p.n, desc:p.d, type:p.c, price:p.p.replace('$',''), stock:String(p.sk), pn:p.pn}); };
-    tr.querySelector('[data-action="del"]').onclick  = function(e){ e.stopPropagation(); showConfirm({title:'Remove Spare Part', msg:'Remove "'+p.n+'"? Cannot be undone.', danger:true, confirmText:'Remove'}, function(){ toast('Spare part removed', 'danger', 'trash'); }); };
-  });
-};
-
-/* ── ADD / EDIT MARINE EMERGENCY SPARE MODAL ── */
-function modalAddSpare(data) {
-  data = data || {};
-  var types = ['Engine','Safety','Fire Safety','Navigation','Signaling','Medical','Deck'];
-  var typeOptions = types.map(function(t){ return '<option'+(data.type===t?' selected':'')+'>'+t+'</option>'; }).join('');
-  showModal({
-    title: data.name ? 'Edit Spare Part' : 'Add Marine Emergency Spare',
-    sub: 'Marine Emergency Spares catalog',
-    icon: 'engine', iconBg:'var(--teal-50)', iconColor:'var(--teal-600)',
-    size: 'lg',
-    body: `
-      <div class="fg"><label class="fg-label">Spare Part Name</label><input class="form-input" placeholder="e.g. SOLAS Life Jacket" value="${data.name||''}"></div>
-      <div class="fg"><label class="fg-label">Description</label><textarea class="form-input" placeholder="Specification, approval standard, fitment…" style="height:70px">${data.desc||''}</textarea></div>
-      <div class="form-row triple">
-        <div class="fg"><label class="fg-label">Type</label><select class="form-select">${typeOptions}</select></div>
-        <div class="fg"><label class="fg-label">Price ($)</label><input class="form-input" type="number" placeholder="0.00" value="${data.price||''}"></div>
-        <div class="fg"><label class="fg-label">Stock Quantity</label><input class="form-input" type="number" placeholder="0" value="${data.stock||''}"></div>
-      </div>
-      <div class="form-row">
-        <div class="fg"><label class="fg-label">Part Number</label><input class="form-input" placeholder="SP-XXX-000" value="${data.pn||''}"></div>
-        <div class="fg"><label class="fg-label">Reorder Level</label><input class="form-input" type="number" placeholder="10"></div>
-      </div>
-      <div class="fg"><label class="fg-label">Product Image</label>
-        <input type="file" id="spare-img-input" accept="image/*" style="display:none" onchange="previewSpareImage(this)">
-        <div class="upload-area" id="spare-upload" onclick="document.getElementById('spare-img-input').click()">
-          <i class="ti ti-photo-up" style="font-size:26px;display:block;margin-bottom:6px"></i>
-          Click to upload the product image
-        </div>
-        <img id="spare-img-preview" alt="preview" style="display:none;max-height:130px;width:auto;border-radius:var(--radius-md);margin-top:10px;border:1px solid var(--border-sm)">
-      </div>
-      <div class="form-row">
-        <label class="switch"><input type="checkbox" checked><div class="switch-track"></div><span class="switch-label">Available to Sailors</span></label>
-        <label class="switch"><input type="checkbox" ${data.critical?'checked':''}><div class="switch-track"></div><span class="switch-label">Critical / Mandatory Item</span></label>
-      </div>
-      <div class="form-row" style="margin-bottom:0">
-        <label class="switch"><input type="checkbox" ${data.deal?'checked':''}><div class="switch-track"></div><span class="switch-label">Deal Product</span></label>
-        <label class="switch"><input type="checkbox" ${data.express?'checked':''}><div class="switch-track"></div><span class="switch-label">Express Item</span></label>
-      </div>
-    `,
-    footer: '<button class="btn btn-primary" onclick="closeModal();toast(\'' + (data.name?'Spare part updated':'Spare part added to catalog') + '\',\'success\')"><i class="ti ti-check"></i>' + (data.name?'Save Changes':'Add Product') + '</button>'
-  });
-}
-function previewSpareImage(input) {
-  if (!input.files || !input.files[0]) return;
-  var file = input.files[0];
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var img = document.getElementById('spare-img-preview');
-    if (img) { img.src = e.target.result; img.style.display = 'block'; }
-    var ua = document.getElementById('spare-upload');
-    if (ua) ua.innerHTML = '<i class="ti ti-check" style="font-size:22px;color:var(--success-icon);display:block;margin-bottom:6px"></i>' + file.name;
-  };
-  reader.readAsDataURL(file);
-}
 
 /* ─── EXPRESS, REWARDS, PARTNERS, ASSIGNMENTS, VERIFICATION, NOTIFICATIONS, CHAT, SUPPORT, SELLERS, SETTINGS ─── */
 /* These pages have simpler onclick needs - just use goTo() or direct function calls */
