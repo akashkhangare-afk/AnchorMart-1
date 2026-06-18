@@ -1,24 +1,30 @@
-# AnchorMart Admin Demo — Agent Instructions
+# AnchorMart Admin — Agent Instructions
 
-This is a static admin dashboard demo. There is no frontend build system or backend service.
+This is a static admin dashboard demo. There is no frontend build system and no
+backend service.
 
 ## Key facts
-- Entry point: `anchormart-admin-light.html`
-- Main UI logic: `js/app.js`
-- Styling: `css/style.css`
-- Static assets under `assets/`
-- Local preview can run with `node serve.js` or `python -m http.server 8000`
+- **Entry point and single source of truth: `index.html`.**
+  It is fully self-contained — all CSS lives in its `<style>` block, all
+  JavaScript in its `<script>` block, and the logos are embedded as base64
+  data-URIs. There are no runtime dependencies on `assets/` or `legacy/`.
+- `serve.js` — tiny static server for local preview (`/` serves `index.html`).
+- `assets/` — brand SVG source files (`logo-wordmark[-white].svg`,
+  `logo-icon[-white].svg`). Not loaded at runtime; edit only the source assets.
+- `legacy/` — an older split-file version (`legacy/css/`, `legacy/js/`). **Dead
+  code, kept for reference only. Do not edit it expecting the app to change.**
 
 ## What to do
-- Treat this as a plain HTML/CSS/JavaScript project.
-- Do not add React, Svelte, or other framework scaffolding unless the user explicitly asks.
-- Keep changes limited to the static files and the existing `serve.js` server if asked to modify project behavior.
+- Make all UI/logic/style changes in **`index.html`** — markup, the inline
+  `<style>`, and the inline `<script>` all live there.
+- Treat this as a plain HTML/CSS/JavaScript project. Do not add React, Svelte,
+  or other framework scaffolding unless the user explicitly asks.
+- Preserve the static/site-demo nature of the repo; do not introduce package
+  tooling or a build step.
 
-## Useful references
-- `README.md` for run instructions and project overview
-- `serve.js` for local server behavior
+## Local preview
+- `node serve.js`, then open <http://localhost:8000/>, or
+- `python -m http.server 8000`, or VS Code **Live Server** / **Live Preview**.
 
-## Suggested agent behavior
-- When editing the dashboard, prefer `js/app.js` for logic and `anchormart-admin-light.html` for static markup.
-- For preview-related questions, mention `Live Server` or `Live Preview` in VS Code and `node serve.js` for local hosting.
-- Preserve the static/site-demo nature of the repo and do not introduce unnecessary package tooling.
+## References
+- `README.md` — project overview, structure, and run instructions.
