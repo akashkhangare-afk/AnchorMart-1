@@ -463,6 +463,15 @@ html, body {
 .notif-empty .es { font-size: 12px; margin-top: 4px; }
 .notif-foot { padding: 12px 18px; border-top: 1px solid var(--border-xs); background: var(--surface-alt); }
 
+/* ── ANALYTICS DRILL-DOWN ── */
+.drill-crumb { display: inline-flex; align-items: center; gap: 4px; color: var(--teal-700); cursor: pointer; font-weight: 700; }
+.drill-crumb:hover { text-decoration: underline; }
+.drill-crumb.cur { color: var(--t1); cursor: default; text-decoration: none; }
+.drill-list { border: 1px solid var(--border-xs); border-radius: var(--radius-md); overflow: hidden; max-height: 340px; overflow-y: auto; }
+.drill-prow { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-bottom: 1px solid var(--border-xs); cursor: pointer; transition: background .12s; }
+.drill-prow:last-child { border-bottom: none; }
+.drill-prow:hover { background: var(--surface-alt); }
+
 .tb-status {
   display: flex; align-items: center; gap: 7px;
   font-size: 12px; font-weight: 600; color: var(--t4);
@@ -2562,6 +2571,170 @@ function applyDateRange() {
 
 
 /* ════════════════════════════════════════════
+   EXCEL EXPORT (client-side, real .xls download)
+════════════════════════════════════════════ */
+function downloadExcel(filename, headers, rows) {
+  function esc(v){ return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  var thead = '<tr>' + headers.map(function(h){ return '<th style="background:#0a1628;color:#fff;font-weight:bold">'+esc(h)+'</th>'; }).join('') + '</tr>';
+  var tbody = rows.map(function(r){ return '<tr>' + r.map(function(c){ return '<td>'+esc(c)+'</td>'; }).join('') + '</tr>'; }).join('');
+  var html = '﻿<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body>' +
+    '<table border="1">' + thead + tbody + '</table></body></html>';
+  var blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename.replace(/[^\w.\- ]+/g,'_');
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+}
+
+/* ════════════════════════════════════════════
+   ANALYTICS: CATEGORY → SUBCATEGORY → PRODUCT DRILL-DOWN
+════════════════════════════════════════════ */
+var DRILL = { cat:null, sub:null, products:null, filtered:null, query:'', product:null };
+
+function _drillHash(s){ var h=0,i; for(i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return h; }
+function _drillRand(seed){ var s=seed>>>0; return function(){ s=(s*1664525+1013904223)>>>0; return s/4294967296; }; }
+function _drillCount(cat, sub){ var rnd=_drillRand(_drillHash(cat+'|'+sub)); return 80 + Math.floor(rnd()*1120); }
+
+function drillGetProducts(cat, sub){
+  var rnd = _drillRand(_drillHash(cat+'|'+sub));
+  var count = 80 + Math.floor(rnd()*1120);  /* up to ~1200 — simulates large future catalogs */
+  var tiers = ['Pro','Lite','Max','Air','Plus','Mini','Ultra','Eco','Prime','Neo','Flex','Go'];
+  var list = new Array(count);
+  for (var i=0;i<count;i++){
+    var units=[], d, tot=0;
+    for (d=0;d<7;d++){ var u=4+Math.floor(rnd()*70); units[d]=u; tot+=u; }
+    var price = 5 + Math.floor(rnd()*145);
+    list[i] = {
+      name: sub+' '+tiers[Math.floor(rnd()*tiers.length)]+' '+(i+1),
+      sku: 'SKU-'+cat.replace(/[^A-Za-z]/g,'').slice(0,3).toUpperCase()+(10000+i),
+      units: units, totalUnits: tot, revenue: tot*price, growth: Math.floor(rnd()*48)-10
+    };
+  }
+  return list;
+}
+
+function openCatDrill(cat){
+  DRILL = { cat:cat, sub:null, products:null, filtered:null, query:'', product:null };
+  showModal({ title:'Category Analytics', sub:cat, icon:'chart-histogram', iconBg:'var(--teal-50)', iconColor:'var(--teal-600)', size:'lg', footer:false, body:'<div id="drill-body"></div>' });
+  renderDrill();
+}
+
+function drillCrumb(){
+  var c = '<div class="flex aic g6 sm w7 mb16" style="flex-wrap:wrap">';
+  c += '<span class="drill-crumb" onclick="drillReset()"><i class="ti ti-category" style="font-size:14px"></i> '+DRILL.cat+'</span>';
+  if (DRILL.sub){ c += '<i class="ti ti-chevron-right c4" style="font-size:13px"></i><span class="drill-crumb'+(DRILL.product?'':' cur')+'" onclick="drillToSub()">'+DRILL.sub+'</span>'; }
+  if (DRILL.product){ c += '<i class="ti ti-chevron-right c4" style="font-size:13px"></i><span class="drill-crumb cur">'+DRILL.product.name+'</span>'; }
+  return c + '</div>';
+}
+
+function renderDrill(){
+  var el = document.getElementById('drill-body'); if (!el) return;
+  if (DRILL.product){ el.innerHTML = drillCrumb()+drillProductView(); return; }
+  if (DRILL.sub){ el.innerHTML = drillCrumb()+drillProductList(); wireDrillList(); return; }
+  el.innerHTML = drillCrumb()+drillSubList();
+}
+
+function drillSubList(){
+  var subs = PROD_CATEGORIES[DRILL.cat] || [];
+  if (!subs.length){
+    return '<div class="notif-empty"><i class="ti ti-folder-off"></i><div class="et">No subcategories yet</div><div class="es">Add subcategories for '+DRILL.cat+' under Products &amp; Catalog → Categories.</div></div>';
+  }
+  var html = '<div class="sec-label">Select a subcategory</div><div class="grid-2" style="gap:12px">';
+  html += subs.map(function(s,i){
+    var n = _drillCount(DRILL.cat, s);
+    return '<div class="ecard flex aic g12" style="cursor:pointer" onclick="drillSelectSub('+i+')">' +
+      '<div class="notif-ic" style="background:var(--teal-50);color:var(--teal-600)"><i class="ti ti-tag"></i></div>' +
+      '<div style="flex:1;min-width:0"><div class="sm w7 c1">'+s+'</div><div class="xs c4 mt4">'+n.toLocaleString()+' products</div></div>' +
+      '<i class="ti ti-chevron-right c4"></i></div>';
+  }).join('');
+  return html + '</div>';
+}
+
+function drillSelectSub(i){
+  var subs = PROD_CATEGORIES[DRILL.cat] || [];
+  DRILL.sub = subs[i];
+  DRILL.products = drillGetProducts(DRILL.cat, DRILL.sub);
+  DRILL.query = ''; DRILL.product = null;
+  renderDrill();
+}
+
+function drillProductList(){
+  var q = DRILL.query.trim().toLowerCase();
+  var filtered = q ? DRILL.products.filter(function(p){ return p.name.toLowerCase().indexOf(q)>=0 || p.sku.toLowerCase().indexOf(q)>=0; }) : DRILL.products;
+  DRILL.filtered = filtered;
+  var CAP = 50, shown = filtered.slice(0, CAP);
+  var rows = shown.map(function(p,i){
+    var g = p.growth >= 0;
+    return '<div class="drill-prow" data-pi="'+i+'">' +
+      '<div style="flex:1;min-width:0"><div class="sm w7 c1 trunc">'+p.name+'</div><div class="xs c4 mt4 mono">'+p.sku+'</div></div>' +
+      '<div class="sm w7 c2" style="width:92px;text-align:right">$'+p.revenue.toLocaleString()+'</div>' +
+      '<div class="sm w7" style="width:62px;text-align:right;color:'+(g?'var(--green-text)':'var(--danger-text)')+'">'+(g?'↑':'↓')+' '+Math.abs(p.growth)+'%</div>' +
+      '<i class="ti ti-chevron-right c4" style="margin-left:6px"></i></div>';
+  }).join('');
+  var note = filtered.length > CAP
+    ? '<div class="xs c4 mt8" style="text-align:center">Showing '+CAP+' of '+filtered.length.toLocaleString()+' — refine your search to narrow results</div>'
+    : '<div class="xs c4 mt8" style="text-align:center">'+filtered.length.toLocaleString()+' product'+(filtered.length===1?'':'s')+'</div>';
+  return '' +
+    '<div class="flex aic g10 mb12" style="flex-wrap:wrap">' +
+      '<div class="input-wrap f1" style="min-width:200px"><i class="ti ti-search pre"></i><input id="drill-search" class="form-input has-icon" placeholder="Search '+DRILL.sub+' products…" value="'+DRILL.query.replace(/"/g,'&quot;')+'"></div>' +
+      '<button class="btn btn-secondary btn-sm" onclick="drillDownloadSub()"><i class="ti ti-download"></i>Export all ('+DRILL.products.length.toLocaleString()+')</button>' +
+    '</div>' +
+    '<div class="drill-list">' + (rows || '<div class="notif-empty"><i class="ti ti-search-off"></i><div class="et">No products match "'+DRILL.query+'"</div></div>') + '</div>' +
+    note;
+}
+
+function wireDrillList(){
+  var s = document.getElementById('drill-search');
+  if (s){ s.oninput = function(){ DRILL.query = this.value; var pos = this.selectionStart; renderDrill(); var ns = document.getElementById('drill-search'); if (ns){ ns.focus(); try { ns.setSelectionRange(pos,pos); } catch(e){} } }; }
+  document.querySelectorAll('.drill-prow').forEach(function(row){
+    row.onclick = function(){ DRILL.product = DRILL.filtered[+row.getAttribute('data-pi')]; renderDrill(); };
+  });
+}
+
+function drillProductView(){
+  var p = DRILL.product;
+  var max = Math.max.apply(null, p.units), days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var bars = p.units.map(function(v,i){ return '<div class="chart-bar teal" style="height:'+((v/max)*100).toFixed(1)+'%" title="'+days[i]+': '+v+' units"></div>'; }).join('');
+  var labels = days.map(function(d){ return '<div class="chart-label">'+d+'</div>'; }).join('');
+  var g = p.growth >= 0;
+  return '' +
+    '<div class="flex aic g8 mb16"><span class="badge badge-navy">'+DRILL.sub+'</span><span class="mono xs c4">'+p.sku+'</span></div>' +
+    '<div class="flex aic g20 mb20" style="flex-wrap:wrap">' +
+      '<div><div class="metric-lbl">Revenue (7d)</div><div class="metric-val" style="color:var(--teal-700)">$'+p.revenue.toLocaleString()+'</div></div>' +
+      '<div class="metric-sep"></div>' +
+      '<div><div class="metric-lbl">Units Sold</div><div class="metric-val">'+p.totalUnits.toLocaleString()+'</div></div>' +
+      '<div class="metric-sep"></div>' +
+      '<div><div class="metric-lbl">Growth</div><div class="metric-val" style="color:'+(g?'var(--green-text)':'var(--danger-text)')+'">'+(g?'↑':'↓')+' '+Math.abs(p.growth)+'%</div></div>' +
+    '</div>' +
+    '<div class="sec-label">Daily Units — Last 7 Days</div>' +
+    '<div class="bar-chart" style="height:130px">'+bars+'</div><div class="chart-labels">'+labels+'</div>' +
+    '<div class="flex g8 mt20" style="justify-content:flex-end"><button class="btn btn-ghost" onclick="drillToSub()"><i class="ti ti-arrow-left"></i>Back to list</button><button class="btn btn-primary" onclick="drillDownloadProduct()"><i class="ti ti-download"></i>Download Excel</button></div>';
+}
+
+function drillReset(){ DRILL.sub=null; DRILL.product=null; DRILL.products=null; DRILL.query=''; renderDrill(); }
+function drillToSub(){ DRILL.product=null; renderDrill(); }
+
+function drillDownloadProduct(){
+  var p = DRILL.product, days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var rows = [
+    ['Product', p.name], ['SKU', p.sku], ['Category', DRILL.cat], ['Subcategory', DRILL.sub],
+    ['Total Units (7d)', p.totalUnits], ['Revenue (7d)', '$'+p.revenue], ['Growth', (p.growth>=0?'+':'')+p.growth+'%'],
+    ['', ''], ['Day', 'Units Sold']
+  ];
+  p.units.forEach(function(u,i){ rows.push([days[i], u]); });
+  downloadExcel(DRILL.cat+' '+DRILL.sub+' '+p.name+'.xls', ['Metric','Value'], rows);
+  toast('Exporting "'+p.name+'" analytics…','success','download');
+}
+
+function drillDownloadSub(){
+  var headers = ['#','Product','SKU','Category','Subcategory','Units (7d)','Revenue','Growth %'];
+  var rows = DRILL.products.map(function(p,i){ return [i+1, p.name, p.sku, DRILL.cat, DRILL.sub, p.totalUnits, '$'+p.revenue, (p.growth>=0?'+':'')+p.growth]; });
+  downloadExcel(DRILL.cat+' '+DRILL.sub+' all products.xls', headers, rows);
+  toast('Exporting '+DRILL.products.length.toLocaleString()+' products to Excel…','success','download');
+}
+
+/* ════════════════════════════════════════════
    INTERACTIVE PAGE RENDERERS
 ════════════════════════════════════════════ */
 
@@ -2670,65 +2843,27 @@ PAGES.analytics = function(c) {
     <div class="stat-card sc-amber"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Active Sailors</div><div class="stat-icon"><i class="ti ti-users"></i></div></div><div class="stat-val">1,204</div><div class="stat-foot"><span class="stat-delta up"><i class="ti ti-trending-up"></i>220 new</span></div></div>
   </div>
   <div class="grid-2 mb20" id="analytics-charts"></div>
-  <div class="mb20" id="analytics-product"></div>
   <div class="card" id="analytics-table"></div>`;
 
   /* Charts */
   var sales = [55,42,70,88,60,95,78,90,65,88,95,72,100,84];
-  var cats  = [{n:'Fashion',v:85},{n:'Beauty',v:70},{n:'Fitness',v:60},{n:'Elec.',v:95},{n:'Marine',v:50},{n:'Living',v:75},{n:'Games',v:40},{n:'Express',v:88},{n:'Special',v:65}];
-
   var salesBars = sales.map(function(h,i){ return '<div class="chart-bar hi" style="height:'+h+'%" title="May '+(16+i)+': $'+(h*3200).toLocaleString()+'"></div>'; }).join('');
-  var catBars   = cats.map(function(b){ return '<div class="chart-bar teal" style="height:'+b.v+'%" title="'+b.n+': '+b.v+' orders"></div>'; }).join('');
   var salesLabels = [16,17,18,19,20,21,22,23,24,25,26,27,28,29].map(function(d){ return '<div class="chart-label">May '+d+'</div>'; }).join('');
-  var catLabels   = cats.map(function(b){ return '<div class="chart-label">'+b.n+'</div>'; }).join('');
+
+  /* Orders by Category — bars are clickable to drill into subcategory → product */
+  var catNames   = Object.keys(PROD_CATEGORIES);
+  var catHeights = [85,70,62,95,55,75,48,88,65];
+  var catData    = catNames.map(function(n,i){ return { n:n, v:catHeights[i % catHeights.length] }; });
+  var catBars    = catData.map(function(b,i){ return '<div class="chart-bar teal" data-cat="'+i+'" style="height:'+b.v+'%;cursor:pointer" title="'+b.n+' — click to drill in"></div>'; }).join('');
+  var catLabels  = catData.map(function(b){ var s = b.n.length > 9 ? b.n.slice(0,8)+'…' : b.n; return '<div class="chart-label">'+s+'</div>'; }).join('');
 
   document.getElementById('analytics-charts').innerHTML =
     '<div class="card"><div class="card-hd"><div class="card-ttl"><i class="ti ti-chart-bar"></i>Sales Trend (Daily)</div></div><div class="card-body"><div class="bar-chart" style="height:130px">'+salesBars+'</div><div class="chart-labels">'+salesLabels+'</div></div></div>' +
-    '<div class="card"><div class="card-hd"><div class="card-ttl"><i class="ti ti-chart-bar"></i>Orders by Category</div></div><div class="card-body"><div class="bar-chart" style="height:130px">'+catBars+'</div><div class="chart-labels">'+catLabels+'</div></div></div>';
+    '<div class="card"><div class="card-hd"><div class="card-ttl"><i class="ti ti-chart-bar"></i>Orders by Category</div><span class="sm c4 w6"><i class="ti ti-hand-finger"></i> Click a bar to drill in</span></div><div class="card-body"><div class="bar-chart" style="height:130px">'+catBars+'</div><div class="chart-labels">'+catLabels+'</div></div></div>';
 
-  /* Product-wise sales (selectable) */
-  var prodSales = [
-    {n:'Bisleri Water 1L',        units:[42,55,48,60,52,68,75], total:'$2,568', growth:'↑ 22%'},
-    {n:"Lay's Classic",           units:[30,45,38,50,42,55,60], total:'$2,958', growth:'↑ 17%'},
-    {n:'Tetley Green Tea',        units:[20,28,35,40,38,48,52], total:'$2,226', growth:'↑ 31%'},
-    {n:'Dettol Antiseptic',       units:[50,48,55,52,60,58,65], total:'$3,726', growth:'↑ 14%'},
-    {n:'Amul Taaza Milk',         units:[60,62,58,65,63,70,68], total:'$2,920', growth:'↑ 8%'},
-    {n:'Echo Dot 5th Gen',        units:[15,22,18,30,25,35,40], total:'$4,120', growth:'↑ 27%'},
-    {n:'Titan Quartz Watch',      units:[8,12,10,15,11,18,20],  total:'$3,000', growth:'↑ 12%'},
-  ];
-  var prodDayLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-
-  function renderProdChart(idx) {
-    var p = prodSales[idx];
-    var max = Math.max.apply(null, p.units);
-    var bars = p.units.map(function(v,i){ return '<div class="chart-bar teal" style="height:'+((v/max)*100).toFixed(1)+'%" title="'+prodDayLabels[i]+': '+v+' units"></div>'; }).join('');
-    var labels = prodDayLabels.map(function(d){ return '<div class="chart-label">'+d+'</div>'; }).join('');
-    var totalUnits = p.units.reduce(function(a,b){ return a+b; }, 0);
-    document.getElementById('prod-chart-body').innerHTML =
-      '<div class="bar-chart" style="height:130px">'+bars+'</div><div class="chart-labels">'+labels+'</div>';
-    document.getElementById('prod-total').textContent = p.total;
-    document.getElementById('prod-units').textContent = totalUnits + ' units';
-    document.getElementById('prod-growth').textContent = p.growth;
-  }
-
-  var prodOptions = prodSales.map(function(p,i){ return '<option value="'+i+'">'+p.n+'</option>'; }).join('');
-  document.getElementById('analytics-product').innerHTML =
-    '<div class="card">' +
-      '<div class="card-hd">' +
-        '<div class="card-ttl"><i class="ti ti-chart-histogram"></i>Product-wise Sales</div>' +
-        '<div class="card-acts"><select class="form-select" id="prod-select" style="min-width:190px">'+prodOptions+'</select></div>' +
-      '</div>' +
-      '<div class="metric-row">' +
-        '<div class="metric-item"><div class="metric-lbl">Revenue (7d)</div><div class="metric-val" style="color:var(--teal-700)" id="prod-total"></div></div>' +
-        '<div class="metric-sep"></div>' +
-        '<div class="metric-item"><div class="metric-lbl">Units Sold</div><div class="metric-val" id="prod-units"></div></div>' +
-        '<div class="metric-sep"></div>' +
-        '<div class="metric-item"><div class="metric-lbl">Growth</div><div class="metric-val" style="color:var(--green-text)" id="prod-growth"></div></div>' +
-      '</div>' +
-      '<div class="card-body" id="prod-chart-body"></div>' +
-    '</div>';
-  document.getElementById('prod-select').addEventListener('change', function(){ renderProdChart(parseInt(this.value, 10)); });
-  renderProdChart(0);
+  document.querySelectorAll('#analytics-charts .chart-bar[data-cat]').forEach(function(bar){
+    bar.onclick = function(){ openCatDrill(catData[+bar.getAttribute('data-cat')].n); };
+  });
 
   var perfRows = [
     ['Bisleri Water 1L','Beverages','1,284','$2,568','↑ 22%',[3,5,4,8,7,9,8]],
