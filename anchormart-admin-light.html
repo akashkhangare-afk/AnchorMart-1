@@ -2570,50 +2570,6 @@ const PAGES = {};
 
 /* ─── DASHBOARD ─── */
 PAGES.dashboard = function(c) {
-  /* ── Widget data ── */
-  var ordersTrend = [62,70,55,80,72,90,68,85,78,95,82,100,88,104];
-  var trendDays   = [16,17,18,19,20,21,22,23,24,25,26,27,28,29];
-  var maxT = Math.max.apply(null, ordersTrend);
-  var trendBars = ordersTrend.map(function(v,i){ return '<div class="chart-bar hi" style="height:'+((v/maxT)*100).toFixed(1)+'%" title="May '+trendDays[i]+': '+v+' orders"></div>'; }).join('');
-  var trendLbls = trendDays.map(function(d){ return '<div class="chart-label">'+d+'</div>'; }).join('');
-
-  var pipeline = [
-    {n:'New',              v:12,  col:'var(--info-icon)'},
-    {n:'In Progress',      v:47,  col:'var(--amber-400)'},
-    {n:'Out for Delivery', v:38,  col:'var(--teal-500)'},
-    {n:'Delivered',        v:129, col:'var(--green-icon)'},
-  ];
-  var pipeMax = 150;
-  var pipeRows = pipeline.map(function(p){
-    return '<div class="mb16">' +
-      '<div class="flex aic jb mb8"><span class="sm w7 c2">'+p.n+'</span><span class="sm w8 c1">'+p.v+'</span></div>' +
-      '<div class="progress lg"><div class="progress-fill" style="width:'+Math.min(100,(p.v/pipeMax*100)).toFixed(0)+'%;background:'+p.col+'"></div></div>' +
-    '</div>';
-  }).join('');
-
-  var feed = [
-    {col:'var(--green-icon)',  t:'Order #AM2465 delivered',            s:'Sara Chen · APL Vanda · by Marco Reyes',      tm:'2m ago'},
-    {col:'var(--info-icon)',   t:'New intent #INT-0051 submitted',     s:'Ravi Patel · IMO 0123456',                    tm:'14m ago'},
-    {col:'var(--amber-400)',   t:'Anchorage changed for #INT-0047',    s:'Lois Becket · $4.50 balance pending',         tm:'31m ago'},
-    {col:'var(--teal-500)',    t:'Partner Pita Havili went on duty',   s:'Zone: Brani Terminal',                        tm:'1h ago'},
-    {col:'var(--danger-icon)', t:'Verification flagged #ENQ-0039',     s:'2 items unavailable — substitution needed',   tm:'2h ago'},
-  ];
-  var feedRows = feed.map(function(f){ return '<div class="feed-row"><div class="feed-dot" style="background:'+f.col+'"></div><div style="flex:1;min-width:0"><div class="feed-txt">'+f.t+'</div><div class="feed-sub">'+f.s+'</div></div><div class="feed-time">'+f.tm+'</div></div>'; }).join('');
-
-  var tasks = [
-    {ic:'ti-checklist',       bg:'danger-bg', fg:'danger-icon', t:'6 verifications pending review', s:'2 flagged for substitution', a:'verification', btn:'Review'},
-    {ic:'ti-file-invoice',    bg:'amber-50',  fg:'amber-600',   t:'7 intents awaiting payment',     s:'48-hour window active',      a:'intents',      btn:'Open'},
-    {ic:'ti-clipboard-text',  bg:'navy-50',   fg:'navy-600',    t:'5 special requests to triage',   s:'Submitted in last 24h',      a:'requests',     btn:'Triage'},
-    {ic:'ti-box-seam',        bg:'teal-50',   fg:'teal-600',    t:'3 products low on stock',        s:'Restock recommended',        a:'products',     btn:'View'},
-  ];
-  var taskRows = tasks.map(function(t){
-    return '<div class="ecard flex aic g12 mb12">' +
-      '<div style="width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--'+t.bg+');color:var(--'+t.fg+')"><i class="ti '+t.ic+'" style="font-size:19px"></i></div>' +
-      '<div style="flex:1;min-width:0"><div class="sm w7 c1">'+t.t+'</div><div class="xs c4 mt4">'+t.s+'</div></div>' +
-      '<button class="btn btn-secondary btn-sm" onclick="goTo(\''+t.a+'\')">'+t.btn+'<i class="ti ti-arrow-right"></i></button>' +
-    '</div>';
-  }).join('');
-
   c.innerHTML = `
   <div style="background:linear-gradient(135deg,var(--navy-900) 0%,var(--navy-700) 65%,var(--navy-500) 130%);border-radius:var(--radius-xl);padding:30px 32px;margin-bottom:26px;color:#fff;position:relative;overflow:hidden;box-shadow:var(--sh-md)">
     <div style="position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(10,181,168,.16);filter:blur(70px);top:-90px;right:-40px;pointer-events:none"></div>
@@ -2693,51 +2649,6 @@ PAGES.dashboard = function(c) {
       <div class="stat-top"><div class="stat-lbl">Rewards</div><div class="stat-icon"><i class="ti ti-star"></i></div></div>
       <div class="stat-val">128</div>
       <div class="stat-foot"><span>Active coupons</span></div>
-    </div>
-  </div>
-
-  <div class="grid-2-1 mb24">
-    <div class="card">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-chart-bar"></i>Orders — Last 14 Days</div>
-        <div class="card-acts"><span class="sdot on sm w6 csuccess">Live</span><button class="btn btn-ghost btn-sm" onclick="goTo('orders')">View all<i class="ti ti-arrow-right"></i></button></div>
-      </div>
-      <div class="card-body">
-        <div class="flex aic g20 mb20">
-          <div><div class="xs c4 w7" style="text-transform:uppercase;letter-spacing:1px">Total (14d)</div><div style="font-size:26px;font-weight:800;color:var(--t1);letter-spacing:-1px">1,149</div></div>
-          <div><div class="xs c4 w7" style="text-transform:uppercase;letter-spacing:1px">Today</div><div style="font-size:26px;font-weight:800;color:var(--teal-700);letter-spacing:-1px">104</div></div>
-          <div class="mla"><span class="stat-delta up"><i class="ti ti-trending-up"></i>8.1% vs yesterday</span></div>
-        </div>
-        <div class="bar-chart" style="height:140px">${trendBars}</div>
-        <div class="chart-labels">${trendLbls}</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><div class="card-ttl"><i class="ti ti-route"></i>Order Pipeline</div></div>
-      <div class="card-body">
-        ${pipeRows}
-        <div class="flex aic jb mt8" style="padding-top:14px;border-top:1px solid var(--border-xs)">
-          <span class="sm c4 w6">226 total in pipeline</span>
-          <button class="btn btn-ghost btn-sm" onclick="goTo('assignments')">Assignments<i class="ti ti-arrow-right"></i></button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="grid-2">
-    <div class="card">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-activity"></i>Recent Activity</div>
-        <div class="card-acts"><button class="btn btn-ghost btn-sm" onclick="goTo('notifications')">View all<i class="ti ti-arrow-right"></i></button></div>
-      </div>
-      <div class="card-body" style="padding-top:8px;padding-bottom:8px">${feedRows}</div>
-    </div>
-    <div class="card">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-checkup-list"></i>Action Required</div>
-        <div class="card-acts"><span class="badge badge-amber">4 pending</span></div>
-      </div>
-      <div class="card-body">${taskRows}</div>
     </div>
   </div>`;
 
