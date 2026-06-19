@@ -1247,6 +1247,7 @@ textarea.form-input { height: auto; padding: 10px 12px; resize: vertical; line-h
       <div class="nav-item" onclick="navigate('intents',this)" data-page="intents"><i class="ti ti-file-invoice"></i>Intents<span class="nav-badge warning mla">8</span></div>
       <div class="nav-item" onclick="navigate('requests',this)" data-page="requests"><i class="ti ti-clipboard-text"></i>Special Requests<span class="nav-badge warning mla">5</span></div>
       <div class="nav-item" onclick="navigate('products',this)" data-page="products"><i class="ti ti-box-seam"></i>Products</div>
+      <div class="nav-item" onclick="navigate('spares',this)" data-page="spares"><i class="ti ti-engine"></i>Marine Emergency Spares</div>
       <div class="nav-item" onclick="navigate('express',this)" data-page="express"><i class="ti ti-bolt"></i>Express Items</div>
       <div class="nav-item" onclick="navigate('rewards',this)" data-page="rewards"><i class="ti ti-star"></i>Rewards &amp; Coupons</div>
       <div class="sb-section">Delivery App</div>
@@ -1480,6 +1481,7 @@ var PAGE_TITLES = {
   intents:      'Intent Requests',
   requests:     'Special Request Items',
   products:     'Products & Catalog',
+  spares:       'Marine Emergency Spares',
   express:      'Express Items',
   rewards:      'Rewards & Coupons',
   partners:     'Delivery Partners',
@@ -2855,6 +2857,12 @@ PAGES.dashboard = function(c) {
       <div class="stat-val">1,240</div>
       <div class="stat-foot"><span>Total SKUs</span></div>
     </div>
+    <div class="stat-card sc-red" onclick="goTo('spares')" style="cursor:pointer">
+      <div class="stat-stripe"></div>
+      <div class="stat-top"><div class="stat-lbl">Marine Emergency Spares</div><div class="stat-icon"><i class="ti ti-engine"></i></div></div>
+      <div class="stat-val">86</div>
+      <div class="stat-foot"><span>7 types · critical stock</span></div>
+    </div>
     <div class="stat-card sc-amber" onclick="goTo('assignments')" style="cursor:pointer">
       <div class="stat-stripe"></div>
       <div class="stat-top"><div class="stat-lbl">Assignments</div><div class="stat-icon"><i class="ti ti-clipboard-list"></i></div></div>
@@ -3389,6 +3397,114 @@ PAGES.products = function(c) {
   syncCatDropdowns();
   renderCats();
 };
+
+/* ─── MARINE EMERGENCY SPARES ─── */
+PAGES.spares = function(c) {
+  c.innerHTML = `
+  <div class="pg-header">
+    <div class="pg-header-l"><h1 class="pg-title">Marine Emergency Spares</h1><p class="pg-sub"><span>Critical emergency spare parts available to sailors</span></p></div>
+    <div class="pg-actions">
+      <div class="input-wrap"><i class="ti ti-search pre"></i><input type="text" class="form-input has-icon" placeholder="Search spare parts…" style="width:200px"></div>
+      <select class="form-select"><option>All Types</option><option>Engine</option><option>Safety</option><option>Fire Safety</option><option>Navigation</option><option>Signaling</option><option>Medical</option><option>Deck</option></select>
+      <select class="form-select"><option>All Status</option><option>In Stock</option><option>Low Stock</option><option>Out of Stock</option></select>
+      <button class="btn btn-primary" onclick="modalAddSpare()"><i class="ti ti-plus"></i>Add Product</button>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card sc-navy"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Total Spare Parts</div><div class="stat-icon"><i class="ti ti-engine"></i></div></div><div class="stat-val">86</div><div class="stat-foot"><span>7 types</span></div></div>
+  </div>
+  <div class="card" id="spares-table"></div>`;
+
+  var spares = [
+    {ic:'ti-lifebuoy',n:'SOLAS Life Jacket',d:'Adult, 150N buoyancy, approved',c:'Safety',pn:'SP-SAF-001',p:'$48.00',sk:120,s:'In Stock',sc:'success'},
+    {ic:'ti-flame',n:'CO₂ Fire Extinguisher 5kg',d:'Marine grade, wall mount',c:'Fire Safety',pn:'SP-FIR-014',p:'$96.50',sk:34,s:'In Stock',sc:'success'},
+    {ic:'ti-flare',n:'Emergency Flare Kit',d:'4 red parachute + 2 smoke',c:'Signaling',pn:'SP-SIG-007',p:'$120.00',sk:8,s:'Low Stock',sc:'warning'},
+    {ic:'ti-filter',n:'Engine Oil Filter (MAN B&W)',d:'Spin-on, fits 6S60MC',c:'Engine',pn:'SP-ENG-022',p:'$32.75',sk:0,s:'Out of Stock',sc:'danger'},
+    {ic:'ti-droplet',n:'Bilge Pump 12V',d:'2000 GPH submersible',c:'Engine',pn:'SP-ENG-031',p:'$74.00',sk:16,s:'In Stock',sc:'success'},
+    {ic:'ti-broadcast',n:'EPIRB Distress Beacon',d:'406 MHz, GPS enabled',c:'Navigation',pn:'SP-NAV-003',p:'$340.00',sk:5,s:'Low Stock',sc:'warning'},
+    {ic:'ti-first-aid-kit',n:'Marine First Aid Kit',d:'SOLAS category C, 50+ items',c:'Medical',pn:'SP-MED-009',p:'$58.00',sk:42,s:'In Stock',sc:'success'},
+    {ic:'ti-jacket',n:'Immersion / Survival Suit',d:'Insulated, one size, SOLAS',c:'Safety',pn:'SP-SAF-018',p:'$185.00',sk:0,s:'Out of Stock',sc:'danger'},
+  ];
+
+  var rows = spares.map(function(p) {
+    return '<tr class="tr-click">' +
+      '<td><div class="prod-thumb"><i class="ti '+p.ic+'"></i></div></td>' +
+      '<td><div class="td-p">'+p.n+'</div><div class="td-m">'+p.d+'</div></td>' +
+      '<td><span class="badge badge-navy">'+p.c+'</span></td>' +
+      '<td class="td-m mono">'+p.pn+'</td>' +
+      '<td class="td-p w7">'+p.p+'</td>' +
+      '<td><span class="badge badge-'+p.sc+'">'+p.s+'</span></td>' +
+      '<td><div class="td-acts">' +
+        '<button class="btn btn-ghost btn-sm btn-icon" data-action="edit" title="Edit"><i class="ti ti-edit"></i></button>' +
+        '<button class="btn btn-danger btn-sm btn-icon" data-action="del" title="Remove"><i class="ti ti-trash"></i></button>' +
+      '</div></td></tr>';
+  }).join('');
+
+  document.getElementById('spares-table').innerHTML =
+    '<div class="tbl-wrap"><table><thead><tr><th></th><th>Spare Part</th><th>Type</th><th>Part No.</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+
+  document.getElementById('spares-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
+    var p = spares[i];
+    tr.onclick = function() { modalAddSpare({name:p.n, desc:p.d, type:p.c, price:p.p.replace('$','').replace('€',''), stock:String(p.sk), pn:p.pn}); };
+    tr.querySelector('[data-action="edit"]').onclick = function(e){ e.stopPropagation(); modalAddSpare({name:p.n, desc:p.d, type:p.c, price:p.p.replace('$',''), stock:String(p.sk), pn:p.pn}); };
+    tr.querySelector('[data-action="del"]').onclick  = function(e){ e.stopPropagation(); showConfirm({title:'Remove Spare Part', msg:'Remove "'+p.n+'"? Cannot be undone.', danger:true, confirmText:'Remove'}, function(){ toast('Spare part removed', 'danger', 'trash'); }); };
+  });
+};
+
+/* ── ADD / EDIT MARINE EMERGENCY SPARE MODAL ── */
+function modalAddSpare(data) {
+  data = data || {};
+  var types = ['Engine','Safety','Fire Safety','Navigation','Signaling','Medical','Deck'];
+  var typeOptions = types.map(function(t){ return '<option'+(data.type===t?' selected':'')+'>'+t+'</option>'; }).join('');
+  showModal({
+    title: data.name ? 'Edit Spare Part' : 'Add Marine Emergency Spare',
+    sub: 'Marine Emergency Spares catalog',
+    icon: 'engine', iconBg:'var(--teal-50)', iconColor:'var(--teal-600)',
+    size: 'lg',
+    body: `
+      <div class="fg"><label class="fg-label">Spare Part Name</label><input class="form-input" placeholder="e.g. SOLAS Life Jacket" value="${data.name||''}"></div>
+      <div class="fg"><label class="fg-label">Description</label><textarea class="form-input" placeholder="Specification, approval standard, fitment…" style="height:70px">${data.desc||''}</textarea></div>
+      <div class="form-row triple">
+        <div class="fg"><label class="fg-label">Type</label><select class="form-select">${typeOptions}</select></div>
+        <div class="fg"><label class="fg-label">Price ($)</label><input class="form-input" type="number" placeholder="0.00" value="${data.price||''}"></div>
+        <div class="fg"><label class="fg-label">Stock Quantity</label><input class="form-input" type="number" placeholder="0" value="${data.stock||''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">Part Number</label><input class="form-input" placeholder="SP-XXX-000" value="${data.pn||''}"></div>
+        <div class="fg"><label class="fg-label">Reorder Level</label><input class="form-input" type="number" placeholder="10"></div>
+      </div>
+      <div class="fg"><label class="fg-label">Product Image</label>
+        <input type="file" id="spare-img-input" accept="image/*" style="display:none" onchange="previewSpareImage(this)">
+        <div class="upload-area" id="spare-upload" onclick="document.getElementById('spare-img-input').click()">
+          <i class="ti ti-photo-up" style="font-size:26px;display:block;margin-bottom:6px"></i>
+          Click to upload the product image
+        </div>
+        <img id="spare-img-preview" alt="preview" style="display:none;max-height:130px;width:auto;border-radius:var(--radius-md);margin-top:10px;border:1px solid var(--border-sm)">
+      </div>
+      <div class="form-row">
+        <label class="switch"><input type="checkbox" checked><div class="switch-track"></div><span class="switch-label">Available to Sailors</span></label>
+        <label class="switch"><input type="checkbox" ${data.critical?'checked':''}><div class="switch-track"></div><span class="switch-label">Critical / Mandatory Item</span></label>
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label class="switch"><input type="checkbox" ${data.deal?'checked':''}><div class="switch-track"></div><span class="switch-label">Deal Product</span></label>
+        <label class="switch"><input type="checkbox" ${data.express?'checked':''}><div class="switch-track"></div><span class="switch-label">Express Item</span></label>
+      </div>
+    `,
+    footer: '<button class="btn btn-primary" onclick="closeModal();toast(\'' + (data.name?'Spare part updated':'Spare part added to catalog') + '\',\'success\')"><i class="ti ti-check"></i>' + (data.name?'Save Changes':'Add Product') + '</button>'
+  });
+}
+function previewSpareImage(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = document.getElementById('spare-img-preview');
+    if (img) { img.src = e.target.result; img.style.display = 'block'; }
+    var ua = document.getElementById('spare-upload');
+    if (ua) ua.innerHTML = '<i class="ti ti-check" style="font-size:22px;color:var(--success-icon);display:block;margin-bottom:6px"></i>' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
 
 /* ─── EXPRESS, REWARDS, PARTNERS, ASSIGNMENTS, VERIFICATION, NOTIFICATIONS, CHAT, SUPPORT, SELLERS, SETTINGS ─── */
 /* These pages have simpler onclick needs - just use goTo() or direct function calls */
