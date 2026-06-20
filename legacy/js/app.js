@@ -180,7 +180,24 @@ function segClick(el) {
 ════════════════════════════════════════ */
 function sortTable(col)   { toast('Sorted by ' + col, '', 'arrows-sort'); }
 function filterTable(val) { if (val) toast('Filter: ' + val, '', 'filter'); }
-function exportData(type) { toast('Exporting ' + (type||'CSV') + '…', '', 'download'); }
+function exportData(type) {
+  var filename = 'dashboard-export.xlsx';
+  var content = 'Label\tValue\n' +
+    'Sailors\t2,847\n' +
+    'Delivery Partners\t38\n' +
+    'Orders\t184\n' +
+    'Analytics\t$12.4k\n' +
+    'Assignments\t47\n' +
+    'Verifications\t6\n';
+  var blob = new Blob([content], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  toast('Exported ' + filename, 'success', 'download');
+}
 function refreshPage() {
   var mc = document.getElementById('mc');
   if (!mc) return;
@@ -898,71 +915,78 @@ PAGES.dashboard = function(c) {
       <p class="pg-sub"><span class="sdot on">Live monitoring</span><span class="sep">·</span><span>Friday, 29 May 2026</span></p>
     </div>
     <div class="pg-actions">
-      <div class="pill-toggle">
-        <div class="pill-btn active" onclick="segClick(this)">Today</div>
-        <div class="pill-btn" onclick="segClick(this)">Week</div>
-        <div class="pill-btn" onclick="segClick(this)">Month</div>
-      </div>
       <button class="btn btn-secondary btn-sm" onclick="refreshPage()"><i class="ti ti-refresh"></i>Refresh</button>
-      <button class="btn btn-primary btn-sm" onclick="exportData('PDF')"><i class="ti ti-download"></i>Export</button>
+      <button class="btn btn-primary btn-sm" onclick="exportData('Excel')"><i class="ti ti-download"></i>Export to Excel</button>
     </div>
   </div>
 
   <div class="stats-row">
     <div class="stat-card sc-navy" onclick="goTo('sailors')" style="cursor:pointer">
       <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">Total Sailors</div><div class="stat-icon"><i class="ti ti-users"></i></div></div>
+      <div class="stat-top"><div class="stat-lbl">Sailors</div><div class="stat-icon"><i class="ti ti-users"></i></div></div>
       <div class="stat-val">2,847</div>
       <div class="stat-foot"><span class="stat-delta up"><i class="ti ti-trending-up"></i>14.2%</span><span>vs last month</span></div>
     </div>
     <div class="stat-card sc-teal" onclick="goTo('partners')" style="cursor:pointer">
       <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">Active Partners</div><div class="stat-icon"><i class="ti ti-motorbike"></i></div></div>
+      <div class="stat-top"><div class="stat-lbl">Delivery Partners</div><div class="stat-icon"><i class="ti ti-motorbike"></i></div></div>
       <div class="stat-val">38</div>
-      <div class="stat-foot"><span class="sdot on xs w6 csuccess">28 on duty now</span></div>
+      <div class="stat-foot"><span class="sdot on xs w6 csuccess">28 on duty</span></div>
     </div>
     <div class="stat-card sc-blue" onclick="goTo('orders')" style="cursor:pointer">
       <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">Orders Today</div><div class="stat-icon"><i class="ti ti-package"></i></div></div>
+      <div class="stat-top"><div class="stat-lbl">Orders</div><div class="stat-icon"><i class="ti ti-package"></i></div></div>
       <div class="stat-val">184</div>
       <div class="stat-foot"><span class="stat-delta up"><i class="ti ti-trending-up"></i>8.1%</span><span>vs yesterday</span></div>
     </div>
-    <div class="stat-card sc-green" onclick="goTo('analytics')" style="cursor:pointer">
+    <div class="stat-card sc-purple" onclick="goTo('products')" style="cursor:pointer">
       <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">Revenue Today</div><div class="stat-icon"><i class="ti ti-currency-dollar"></i></div></div>
-      <div class="stat-val">$12.4k</div>
-      <div class="stat-foot"><span class="stat-delta up"><i class="ti ti-trending-up"></i>6.2%</span><span>vs yesterday</span></div>
+      <div class="stat-top"><div class="stat-lbl">Products</div><div class="stat-icon"><i class="ti ti-box-seam"></i></div></div>
+      <div class="stat-val">1,240</div>
+      <div class="stat-foot"><span>Total SKUs</span></div>
     </div>
-    <div class="stat-card sc-amber" onclick="goTo('orders')" style="cursor:pointer">
+    <div class="stat-card sc-amber" onclick="goTo('assignments')" style="cursor:pointer">
       <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">In Progress</div><div class="stat-icon"><i class="ti ti-loader-2"></i></div></div>
+      <div class="stat-top"><div class="stat-lbl">Assignments</div><div class="stat-icon"><i class="ti ti-clipboard-list"></i></div></div>
       <div class="stat-val">47</div>
-      <div class="stat-foot"><span>12 awaiting payment</span></div>
-    </div>
-    <div class="stat-card sc-red" onclick="goTo('orders')" style="cursor:pointer">
-      <div class="stat-stripe"></div>
-      <div class="stat-top"><div class="stat-lbl">Cancelled</div><div class="stat-icon"><i class="ti ti-circle-x"></i></div></div>
-      <div class="stat-val">6</div>
-      <div class="stat-foot"><span>3 pending refund</span></div>
+      <div class="stat-foot"><span>Active assignments</span></div>
     </div>
   </div>
 
-  <div class="grid-2 mb20" style="grid-template-columns:2fr 1fr">
-    <div class="card">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-package"></i>Live Orders</div>
-        <div class="card-acts">
-          <span class="sdot on sm w6 csuccess">Real-time</span>
-          <button class="btn btn-ghost btn-sm" onclick="goTo('orders')">View all <i class="ti ti-arrow-right"></i></button>
-        </div>
-      </div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>Order ID</th><th>Sailor</th><th>Ship / Port</th><th>Partner</th><th>Status</th><th>Total</th><th></th></tr></thead>
-          <tbody id="live-orders-body"></tbody>
-        </table>
-      </div>
+  <div class="stats-row">
+    <div class="stat-card sc-red" onclick="goTo('verification')" style="cursor:pointer">
+      <div class="stat-stripe"></div>
+      <div class="stat-top"><div class="stat-lbl">Verifications</div><div class="stat-icon"><i class="ti ti-checklist"></i></div></div>
+      <div class="stat-val">6</div>
+      <div class="stat-foot"><span>Pending review</span></div>
     </div>
+    <div class="stat-card sc-purple" onclick="goTo('intents')" style="cursor:pointer">
+      <div class="stat-stripe"></div>
+      <div class="stat-top"><div class="stat-lbl">Intents</div><div class="stat-icon"><i class="ti ti-file-invoice"></i></div></div>
+      <div class="stat-val">23</div>
+      <div class="stat-foot"><span>Total intents</span></div>
+    </div>
+    <div class="stat-card sc-navy" onclick="goTo('requests')" style="cursor:pointer">
+      <div class="stat-stripe"></div>
+      <div class="stat-top"><div class="stat-lbl">Special Requests</div><div class="stat-icon"><i class="ti ti-clipboard-text"></i></div></div>
+      <div class="stat-val">5</div>
+      <div class="stat-foot"><span>Awaiting review</span></div>
+    </div>
+    <div class="stat-card sc-green" onclick="goTo('express')" style="cursor:pointer">
+      <div class="stat-stripe"></div>
+      <div class="stat-top"><div class="stat-lbl">Express Items</div><div class="stat-icon"><i class="ti ti-bolt"></i></div></div>
+      <div class="stat-val">124</div>
+      <div class="stat-foot"><span>High priority</span></div>
+    </div>
+    <div class="stat-card sc-teal" onclick="goTo('rewards')" style="cursor:pointer">
+      <div class="stat-stripe"></div>
+      <div class="stat-top"><div class="stat-lbl">Rewards</div><div class="stat-icon"><i class="ti ti-star"></i></div></div>
+      <div class="stat-val">128</div>
+      <div class="stat-foot"><span>Active coupons</span></div>
+    </div>
+  </div>
+
+  <div class="mb20">
     <div class="card">
       <div class="card-hd">
         <div class="card-ttl"><i class="ti ti-activity"></i>Activity Feed</div>
@@ -970,91 +994,9 @@ PAGES.dashboard = function(c) {
       </div>
       <div class="card-body-sm live-feed-wrap" id="activity-feed"></div>
     </div>
-  </div>
-
-  <div class="grid-3 mb20">
-    <div class="card" style="grid-column:span 2">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-chart-bar"></i>Revenue — Last 14 Days</div>
-        <div class="card-acts">
-          <div class="pill-toggle">
-            <div class="pill-btn active" onclick="segClick(this)">Daily</div>
-            <div class="pill-btn" onclick="segClick(this)">Weekly</div>
-          </div>
-          <button class="btn btn-ghost btn-sm" onclick="exportData('CSV')"><i class="ti ti-download"></i></button>
-        </div>
-      </div>
-      <div class="metric-row">
-        <div class="metric-item"><div class="metric-lbl">Total</div><div class="metric-val" style="color:var(--teal-700)">$168.2k</div></div>
-        <div class="metric-sep"></div>
-        <div class="metric-item"><div class="metric-lbl">Avg / Day</div><div class="metric-val">$12.0k</div></div>
-        <div class="metric-sep"></div>
-        <div class="metric-item"><div class="metric-lbl">Peak Day</div><div class="metric-val">$18.4k</div></div>
-        <div class="metric-sep"></div>
-        <div class="metric-item"><div class="metric-lbl">Growth</div><div class="metric-val" style="color:var(--green-text)">+18.3%</div></div>
-      </div>
-      <div class="card-body" id="revenue-chart"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd"><div class="card-ttl"><i class="ti ti-chart-donut-2"></i>Order Status</div></div>
-      <div class="card-body" id="order-status-chart"></div>
-    </div>
-  </div>
-
-  <div class="grid-3">
-    <div class="card">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-award"></i>Top Products</div>
-        <button class="btn btn-ghost btn-sm" onclick="goTo('products')">View all <i class="ti ti-arrow-right"></i></button>
-      </div>
-      <div class="card-body-sm" id="top-products"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-motorbike"></i>Active Partners</div>
-        <button class="btn btn-ghost btn-sm" onclick="goTo('partners')">View all <i class="ti ti-arrow-right"></i></button>
-      </div>
-      <div class="card-body-sm" id="active-partners"></div>
-    </div>
-    <div class="card">
-      <div class="card-hd">
-        <div class="card-ttl"><i class="ti ti-alert-circle"></i>Action Required</div>
-        <span class="badge badge-danger">7 open</span>
-      </div>
-      <div class="card-body-sm" id="action-required"></div>
-    </div>
   </div>`;
 
   /* ── Populate dynamic sections (no onclick string escaping) ── */
-  var liveOrders = [
-    {id:'#AM2458',s:'Lois Becket',p:'Anchorage 2 · PSA',pt:'Rahul Singh',st:'In Progress',sc:'warning',t:'$84.00'},
-    {id:'#AM2461',s:'Ali Mahmoud',p:'MSC Marvela · B7',pt:'Rahul Singh',st:'Verifying',sc:'info',t:'$70.45'},
-    {id:'#AM2463',s:'James Wren',p:'Evergreen · Brani',pt:'Pita Havili',st:'Delivering',sc:'teal',t:'$48.00'},
-    {id:'#AM2465',s:'Sara Chen',p:'APL Vanda · PSA',pt:'Marco Reyes',st:'Delivered',sc:'success',t:'$94.99'},
-    {id:'#AM2467',s:'Ravi Patel',p:'IMO 0123456 · PSA',pt:'Unassigned',st:'New',sc:'neutral',t:'$32.00'},
-  ];
-  var tbody = document.getElementById('live-orders-body');
-  liveOrders.forEach(function(o) {
-    var tr = document.createElement('tr');
-    tr.className = 'tr-click';
-    var ptColor = o.pt === 'Unassigned' ? 'var(--danger-text)' : 'var(--t3)';
-    tr.innerHTML =
-      '<td class="td-id">' + o.id + '</td>' +
-      '<td><div class="flex aic g8"><div class="av av-sm av-navy">' + o.s[0] + '</div><span class="td-p">' + o.s + '</span></div></td>' +
-      '<td class="td-m">' + o.p + '</td>' +
-      '<td style="color:' + ptColor + ';font-size:12.5px;font-weight:600">' + o.pt + '</td>' +
-      '<td><span class="badge badge-' + o.sc + '">' + o.st + '</span></td>' +
-      '<td class="td-p w7">' + o.t + '</td>' +
-      '<td><button class="btn btn-ghost btn-sm btn-icon" title="View detail"><i class="ti ti-eye"></i></button></td>';
-    tr.querySelector('.tr-click, tr') && (tr.onclick = function() {
-      drawerOrderDetail({id:o.id,sailor:o.s,ship:'0123456',terminal:'Anchorage 2',partner:o.pt,payment:'Card · Paid',coupon:'SHIP10',total:o.t,status:o.st,items:[{name:'Titan Watch',qty:1,price:'$75.00'},{name:'Card Holder',qty:1,price:'$12.00'}]});
-    });
-    tr.querySelector('button') && tr.querySelector('button').addEventListener('click', function(e) {
-      e.stopPropagation();
-      drawerOrderDetail({id:o.id,sailor:o.s,ship:'0123456',terminal:'Anchorage 2',partner:o.pt,payment:'Card · Paid',coupon:'SHIP10',total:o.t,status:o.st,items:[{name:'Titan Watch',qty:1,price:'$75.00'}]});
-    });
-    tbody.appendChild(tr);
-  });
 
   /* Activity feed */
   var feedData = [
@@ -1079,96 +1021,6 @@ PAGES.dashboard = function(c) {
     feedEl.appendChild(row);
   });
 
-  /* Revenue chart */
-  var chartVals = [48,62,55,80,70,95,84,110,88,102,114,98,128,112];
-  var chartDays = [16,17,18,19,20,21,22,23,24,25,26,27,28,29];
-  var chartHtml = '<div class="bar-chart" style="height:120px">';
-  chartVals.forEach(function(h, i) {
-    var cls = i >= 7 ? 'hi' : 'amber';
-    chartHtml += '<div class="chart-bar ' + cls + '" style="height:' + (h/1.3).toFixed(1) + '%" title="May ' + chartDays[i] + ': $' + (h*145).toLocaleString() + '" onclick="toast(\'May ' + chartDays[i] + ': $' + (h*145).toLocaleString() + '\',\'\',\'chart-bar\')"></div>';
-  });
-  chartHtml += '</div><div class="chart-labels">';
-  chartDays.forEach(function(d) { chartHtml += '<div class="chart-label">May ' + d + '</div>'; });
-  chartHtml += '</div>';
-  document.getElementById('revenue-chart').innerHTML = chartHtml;
-
-  /* Order status */
-  var statusData = [
-    {l:'Delivered',v:129,p:70,c:'var(--teal-500)',pg:'orders'},
-    {l:'In Transit',v:38,p:21,c:'var(--amber-400)',pg:'assignments'},
-    {l:'Verifying',v:11,p:6,c:'var(--info-icon)',pg:'verification'},
-    {l:'Cancelled',v:6,p:3,c:'var(--danger-icon)',pg:'orders'},
-  ];
-  var statusHtml = '';
-  statusData.forEach(function(s) {
-    statusHtml += '<div class="mb16" style="cursor:pointer" onclick="goTo(\'' + s.pg + '\')">' +
-      '<div class="flex aic mb8"><span class="sm c3 w6 f1">' + s.l + '</span>' +
-      '<span class="w7 sm" style="color:' + s.c + '">' + s.v + '</span>' +
-      '<span class="xs c4 w6" style="width:34px;text-align:right">' + s.p + '%</span></div>' +
-      '<div class="progress"><div class="progress-fill" style="width:' + s.p + '%;background:' + s.c + '"></div></div></div>';
-  });
-  statusHtml += '<div class="divider"></div><div class="flex aic jb"><span class="xs c4 w6">Delivery success rate</span><span class="w8" style="font-size:17px;color:var(--teal-700)">96.8%</span></div>';
-  document.getElementById('order-status-chart').innerHTML = statusHtml;
-
-  /* Top products */
-  var products = [
-    {n:'Echo Dot 5th Gen',c:'Electronics',o:34,ic:'ti-device-speaker'},
-    {n:'Lavazza Coffee',c:'Beverages',o:28,ic:'ti-cup'},
-    {n:'Cureskin Tablets',c:'Beauty',o:22,ic:'ti-pill'},
-    {n:'Bisleri Water 1L',c:'Express',o:19,ic:'ti-droplet'},
-    {n:'Titan Quartz Watch',c:'Accessories',o:16,ic:'ti-watch'},
-    {n:'Bombay Shaving Kit',c:'Beauty',o:14,ic:'ti-tool'},
-  ];
-  var prodHtml = '';
-  products.forEach(function(p, i) {
-    prodHtml += '<div class="flex aic g10 mb12" style="cursor:pointer" onclick="goTo(\'products\')">' +
-      '<span class="xs c4 w7" style="width:16px">' + (i+1) + '</span>' +
-      '<div class="prod-thumb" style="width:32px;height:32px;font-size:14px"><i class="ti ' + p.ic + '"></i></div>' +
-      '<div class="f1 mw0"><div class="sm w7 c1 trunc">' + p.n + '</div><div class="xs c4">' + p.c + '</div></div>' +
-      '<span class="badge badge-teal">' + p.o + '</span></div>';
-  });
-  document.getElementById('top-products').innerHTML = prodHtml;
-
-  /* Active partners */
-  var partners = [
-    {n:'Rahul Singh',id:'DP-00124',d:3,st:'Delivering',sc:'teal'},
-    {n:'Pita Havili',id:'DP-00087',d:2,st:'Verifying',sc:'warning'},
-    {n:'Marco Reyes',id:'DP-00201',d:1,st:'Delivering',sc:'teal'},
-    {n:'Aisha Karimi',id:'DP-00056',d:0,st:'Available',sc:'success'},
-  ];
-  var partHtml = '';
-  partners.forEach(function(d) {
-    partHtml += '<div class="flex aic g10 mb14" style="cursor:pointer" onclick="drawerProfile(\'' + d.n + '\',\'partner\')">' +
-      '<div class="av av-teal">' + d.n[0] + '</div>' +
-      '<div class="f1 mw0"><div class="sm w7 c1">' + d.n + '</div>' +
-      '<div class="xs c4">' + d.id + (d.d > 0 ? ' · ' + d.d + ' active' : ' · free') + '</div></div>' +
-      '<span class="badge badge-' + d.sc + '" style="font-size:10.5px">' + d.st + '</span></div>';
-  });
-  partHtml += '<div class="divider mb12"></div><div class="flex aic jb xs"><span class="c4 w6">Weekly partner earnings</span><span class="w8 camber">$3,400</span></div>';
-  document.getElementById('active-partners').innerHTML = partHtml;
-
-  /* Action required */
-  var actions = [
-    {icon:'ti-clock',bg:'var(--warning-bg)',c:'var(--warning-icon)',t:'12 orders awaiting payment',s:'48hr window expiring soon',pg:'orders',bl:'Review'},
-    {icon:'ti-package-off',bg:'var(--danger-bg)',c:'var(--danger-icon)',t:'3 items out of stock',s:'Admin substitution needed',pg:'products',bl:'Fix'},
-    {icon:'ti-map-pin',bg:'var(--info-bg)',c:'var(--info-icon)',t:'2 location changes post-payment',s:'Additional charges required',pg:'orders',bl:'Review'},
-    {icon:'ti-building-store',bg:'var(--purple-bg)',c:'var(--purple-icon)',t:'4 seller applications pending',s:'Review required',pg:'sellers',bl:'Open'},
-    {icon:'ti-file-invoice',bg:'var(--success-bg)',c:'var(--success-icon)',t:'8 new intent requests',s:'Awaiting availability check',pg:'intents',bl:'Review'},
-  ];
-  var actEl = document.getElementById('action-required');
-  actions.forEach(function(a) {
-    var row = document.createElement('div');
-    row.className = 'flex ais g10 mb12';
-    row.innerHTML =
-      '<div style="width:32px;height:32px;background:' + a.bg + ';color:' + a.c + ';border-radius:var(--radius-sm);font-size:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center"><i class="ti ' + a.icon + '"></i></div>' +
-      '<div class="f1 mw0"><div class="sm w7 c1">' + a.t + '</div><div class="xs c4">' + a.s + '</div></div>';
-    var btn = document.createElement('button');
-    btn.className = 'btn btn-ghost btn-xs';
-    btn.textContent = a.bl;
-    btn.onclick = function() { goTo(a.pg); };
-    row.appendChild(btn);
-    actEl.appendChild(row);
-  });
 };
 
 /* ─── ANALYTICS ─── */
