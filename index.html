@@ -165,8 +165,8 @@ html, body {
 
 .lh-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; position: relative; z-index: 1; }
 .lh-logo.logo-only { justify-content: center; }
-.logo-graphic { display: block; max-width: 180px; max-height: 52px; width: auto; height: auto; }
-.logo-collapsed { display: none; width: 30px; height: 30px; }
+.logo-graphic { display: block; max-width: 160px; max-height: 52px; width: auto; height: auto; }
+.logo-collapsed { display: none; max-width: 160px; width: 20px; height: 20px; }
 .lh-logomark {
   width: 44px; height: 44px; border-radius: 12px;
   background: rgba(255,255,255,.1);
@@ -370,7 +370,7 @@ html, body {
 
 /* ── SIDEBAR TOGGLE ── */
 .sb-toggle {
-  margin-left: auto; width: 34px; height: 34px; flex-shrink: 0;
+  margin-left: auto; width: 26px; height: 26px; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
   border: none; background: rgba(255,255,255,.14); color: #fff;
   border-radius: var(--radius-sm); cursor: pointer; transition: all .2s;
@@ -380,7 +380,7 @@ html, body {
 /* ── SIDEBAR COLLAPSED ── */
 .app-shell.collapsed { grid-template-columns: 72px 1fr; }
 .app-shell.collapsed .sidebar { width: 72px; }
-.app-shell.collapsed .sb-logo { padding: 0; justify-content: center; gap: 0; }
+.app-shell.collapsed .sb-logo { padding: 0; justify-content: center; gap: 1px; }
 .app-shell.collapsed .sb-logo .logo-graphic { display: none; }
 .app-shell.collapsed .sb-logo .logo-collapsed { display: block; }
 .app-shell.collapsed .sb-toggle { margin-left: 0; }
@@ -638,6 +638,7 @@ tbody tr:hover td { color: var(--t2); }
 /* ── AVATARS ── */
 .av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; overflow: hidden; }
 .av img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.av-img { padding: 0; background: var(--surface-alt); border: 1px solid var(--border-xs); }
 .prod-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
 .av-sm { width: 26px; height: 26px; font-size: 10px; }
 .av-lg { width: 40px; height: 40px; font-size: 15px; }
@@ -1925,12 +1926,12 @@ function drawerOrderDetail(order) {
       <div class="detail-kv"><div class="detail-k">Intent Ref</div><div class="detail-v mono">${order.intent||'—'}</div></div>
       <div class="detail-kv"><div class="detail-k">Ship / IMO</div><div class="detail-v mono cteal">${order.ship}</div></div>
       <div class="detail-kv"><div class="detail-k">Terminal</div><div class="detail-v">${order.terminal}</div></div>
-      ${order.chTo ? `<div class="detail-kv"><div class="detail-k">Anchorage Change</div><div class="detail-v"><span class="c4">${order.chFrom}</span> → <span class="cteal w7">${order.chTo}</span> · +${order.ecost} ${order.paid?'<span class="badge badge-success" style="font-size:10px">Paid</span>':'<span class="badge badge-warning" style="font-size:10px">Balance due</span>'}</div></div>` : ''}
+      ${order.chTo ? `<div class="detail-kv"><div class="detail-k">Anchorage Change</div><div class="detail-v"><span class="c4">${order.chFrom}</span> ${SYM_ARROW} <span class="cteal w7">${order.chTo}</span> · +${order.ecost} ${order.paid?'<span class="badge badge-success" style="font-size:10px">Paid</span>':'<span class="badge badge-warning" style="font-size:10px">Balance due</span>'}</div></div>` : ''}
       <div class="detail-kv"><div class="detail-k">Delivery Partner</div><div class="detail-v">${order.partner}</div></div>
       <div class="detail-kv"><div class="detail-k">Payment</div><div class="detail-v ${order.payment&&order.payment.indexOf('Paid')>=0?'csuccess':''}">${order.payment}</div></div>
       <div class="detail-kv"><div class="detail-k">Coupon</div><div class="detail-v">${order.coupon||'None'}</div></div>
       <div class="sec-label mt16">Items</div>
-      ${(order.items||[]).map(function(item){ return '<div class="detail-kv"><div class="detail-k w5 c4" style="display:flex;align-items:center;gap:8px">'+prodImg('sm')+'<span>'+item.name+' ×'+item.qty+'</span></div><div class="detail-v">'+item.price+'</div></div>'; }).join('')}
+      ${(order.items||[]).map(function(item){ return '<div class="detail-kv"><div class="detail-k w5 c4" style="display:flex;align-items:center;gap:8px">'+prodImg('sm', item.name)+'<span>'+item.name+' ×'+item.qty+'</span></div><div class="detail-v">'+item.price+'</div></div>'; }).join('')}
       <div style="background:var(--navy-25);border-radius:var(--radius-md);padding:14px 16px;margin-top:14px">
         <div class="flex jb" style="margin-bottom:6px"><span class="sm c3 w6">Order Total</span><span class="w8" style="font-size:16px">${order.total}</span></div>
       </div>
@@ -1968,10 +1969,32 @@ var PROD_CAT_FIELDS = {
 var PROD_COUNTRIES = ['India','Singapore','China','United States','United Kingdom','Germany','Japan','UAE','Philippines','Vietnam'];
 
 /* Product image placeholder (grey image frame, shown wherever a product is listed) */
-var PROD_PH_IMG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><rect width='40' height='40' fill='%23eef1f5'/><path d='M11 28l6-7 4 4 5-8 5 11z' fill='%23c2cbd6'/><circle cx='15' cy='14' r='3' fill='%23c2cbd6'/></svg>";
-function prodImg(cls) { return '<div class="prod-thumb '+(cls||'')+'"><img src="'+PROD_PH_IMG+'" alt="product"></div>'; }
-/* Delivery proof photo placeholder (uploaded by the delivery partner from the mobile app) */
-var DELIVERY_PROOF_IMG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='180'><rect width='280' height='180' fill='%23e7ecf3'/><rect x='98' y='58' width='84' height='60' rx='4' fill='%23b8c2d0'/><path d='M98 70h84M140 58v60' stroke='%23e7ecf3' stroke-width='3'/><circle cx='140' cy='40' r='12' fill='%2310b5a8'/><path d='M135 40l4 4 7-8' stroke='%23fff' stroke-width='2.5' fill='none'/><text x='140' y='150' font-family='sans-serif' font-size='12' fill='%237a8699' text-anchor='middle'>Delivery photo</text></svg>";
+/* Pick a bundled product image (assets/img/) based on a category or product-name keyword */
+function prodImgFile(key) {
+  key = (key || '').toLowerCase();
+  if (/headphone|earbud|earphone|speaker|audio|sennheiser|bose|echo buds|sound/.test(key)) return 'product-audio';
+  if (/watch|titan|casio|g-shock|timepiece/.test(key)) return 'product-watch';
+  if (/shav|skincare|cosrx|grooming|beauty|fragrance|dettol|colgate|nivea|lotion|cream|soap|toothp/.test(key)) return 'product-beauty';
+  if (/snack|lay|chips|biscuit|protein bar|crisp|namkeen|cookie/.test(key)) return 'product-snack';
+  if (/electron|phone|tablet|power bank|charger|device|echo dot|alexa|wearable|cable|gadget|fitness/.test(key)) return 'product-electronics';
+  if (/food|beverage|coffee|water|milk|tea|drink|bisleri|amul|lavazza|tetley|grocer|bottle|chocolate/.test(key)) return 'product-food';
+  if (/fashion|apparel|shoe|footwear|cloth|jacket|killer|men|women|jewel/.test(key)) return 'product-apparel';
+  if (/marine|safety|engine|navigation|fire|signal|medical|deck|spare|emergency|flare|life|bilge|pump|filter|beacon|epirb|extinguisher/.test(key)) return 'product-marine';
+  return 'product-generic';
+}
+function prodImg(cls, key) { return '<div class="prod-thumb '+(cls||'')+'"><img src="assets/img/'+prodImgFile(key)+'.svg" alt="product" loading="lazy"></div>'; }
+
+/* Deterministic profile picture per person name (renders offline from assets/img/avatar-N.svg) */
+var AVATAR_COUNT = 6;
+function personHash(name) { name = name || ''; var h = 0; for (var i = 0; i < name.length; i++) { h = (h * 31 + name.charCodeAt(i)) >>> 0; } return h; }
+function avatarFile(name) { return 'assets/img/avatar-' + ((personHash(name) % AVATAR_COUNT) + 1) + '.svg'; }
+function personImg(name, cls) { return '<div class="av av-img '+(cls||'')+'"><img src="'+avatarFile(name)+'" alt="'+(name||'')+'" loading="lazy"></div>'; }
+
+/* Delivery proof photo (uploaded by the delivery partner from the mobile app) */
+var DELIVERY_PROOF_IMG = 'assets/img/delivery-proof.svg';
+/* Inline Lucide SVG icons used in place of raw unicode text symbols */
+var SYM_CHECK = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;color:var(--success-icon)"><path d="M20 6 9 17l-5-5"/></svg>';
+var SYM_ARROW = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
 
 function modalAddProduct(data) {
   data = data || {};
@@ -2333,7 +2356,7 @@ function modalAddCoupon(data) {
           ${[
             {n:'Lois Becket',id:'SLR-0012'},{n:'Ali Mahmoud',id:'SLR-0048'},{n:'James Wren',id:'SLR-0071'},
             {n:'Sara Chen',id:'SLR-0093'},{n:'Ravi Patel',id:'SLR-0104'},{n:'Maria Santos',id:'SLR-0119'},
-          ].map(function(u){ return '<label class="flex aic g10" style="padding:7px 8px;border-radius:var(--radius-sm);cursor:pointer"><input type="checkbox" style="width:16px;height:16px"><div class="f1"><div class="sm w7 c1">'+u.n+'</div><div class="xs c4 mono">'+u.id+'</div></div></label>'; }).join('')}
+          ].map(function(u){ return '<label class="flex aic g10" style="padding:7px 8px;border-radius:var(--radius-sm);cursor:pointer"><input type="checkbox" style="width:16px;height:16px">'+personImg(u.n,'av-sm')+'<div class="f1"><div class="sm w7 c1">'+u.n+'</div><div class="xs c4 mono">'+u.id+'</div></div></label>'; }).join('')}
         </div>
       </div>
     `,
@@ -2397,10 +2420,10 @@ function modalSendNotif(prefill) {
       </div>
       <div class="fg"><label class="fg-label">Notification Type</label>
         <select class="form-select">
-          <option>🔔 Payment Required</option><option>📦 Order Confirmed</option>
-          <option>🚗 Out for Delivery</option><option>🎁 Gift / Reward Unlocked</option>
-          <option>⚠️ Product Unavailable</option><option>📢 General Announcement</option>
-          <option>📋 Assignment (Partner)</option><option>💰 Payment Received (Partner)</option>
+          <option>Payment Required</option><option>Order Confirmed</option>
+          <option>Out for Delivery</option><option>Gift / Reward Unlocked</option>
+          <option>Product Unavailable</option><option>General Announcement</option>
+          <option>Assignment (Partner)</option><option>Payment Received (Partner)</option>
         </select>
       </div>
       <div class="fg"><label class="fg-label">Message</label>
@@ -2432,10 +2455,10 @@ function modalAddNotification() {
       </div>
       <div class="fg"><label class="fg-label">Notification Type</label>
         <select class="form-select" id="addnotif-type">
-          <option>🔔 Payment Required</option><option>📦 Order Confirmed</option>
-          <option>🚗 Out for Delivery</option><option>🎁 Gift / Reward</option>
-          <option>⚠️ Product Update</option><option>📢 General Announcement</option>
-          <option>📋 Assignment (Partner)</option>
+          <option>Payment Required</option><option>Order Confirmed</option>
+          <option>Out for Delivery</option><option>Gift / Reward</option>
+          <option>Product Update</option><option>General Announcement</option>
+          <option>Assignment (Partner)</option>
         </select>
       </div>
       <div class="fg"><label class="fg-label">Description</label>
@@ -2455,7 +2478,7 @@ function submitAddNotification() {
     var row = document.createElement('div');
     row.className = 'notif-item';
     row.innerHTML = '<div class="notif-icon" style="background:var(--info-bg);color:var(--info-icon)"><i class="ti ti-bell"></i></div>' +
-      '<div class="f1"><div class="flex aic g8 mb4"><span class="w7 c1 sm">' + name + '</span><span class="xs c4">→ ' + type + '</span></div>' +
+      '<div class="f1"><div class="flex aic g8 mb4"><span class="w7 c1 sm">' + name + '</span><span class="xs c4">' + SYM_ARROW + ' ' + type + '</span></div>' +
       '<div class="sm c3 w5">' + (desc || 'No description') + '</div></div><div class="notif-time">just now</div>';
     nEl.insertBefore(row, nEl.firstChild);
   }
@@ -2484,7 +2507,7 @@ function modalReviewIntent(intent) {
       <div class="sec-label">Requested Items</div>
       ${[
         {n:'Titan Quartz Analog Watch',q:1,a:true},{n:'Brown Leather Card Holder',q:1,a:true},{n:'Bombay Shaving Kit',q:1,a:null},
-      ].map(function(item){ return '<div class="flex aic g12 mb10 ecard"><div class="f1"><div class="sm w7 c1">'+item.n+'</div><div class="xs c4">Qty: '+item.q+'</div></div>'+(item.a===true?'<span class="badge badge-success">Available</span>':item.a===false?'<span class="badge badge-danger">Unavailable</span>':'<span class="badge badge-neutral">Checking…</span>')+'</div>'; }).join('')}
+      ].map(function(item){ return '<div class="flex aic g12 mb10 ecard">'+prodImg('sm', item.n)+'<div class="f1"><div class="sm w7 c1">'+item.n+'</div><div class="xs c4">Qty: '+item.q+'</div></div>'+(item.a===true?'<span class="badge badge-success">Available</span>':item.a===false?'<span class="badge badge-danger">Unavailable</span>':'<span class="badge badge-neutral">Checking…</span>')+'</div>'; }).join('')}
       <div class="sec-label mt16">Admin Response</div>
       <div class="fg"><label class="fg-label">Estimated Price ($)</label><input class="form-input" placeholder="0.00"></div>
       <div class="fg"><label class="fg-label">Assign to Partner</label>
@@ -2638,7 +2661,7 @@ function drawerProfile(name, role) {
     title: name + ' — Profile',
     body: `
       <div style="text-align:center;padding-bottom:20px;border-bottom:1px solid var(--border-sm);margin-bottom:20px">
-        <div class="av av-xl av-${role==='partner'?'teal':'navy'}" style="margin:0 auto 12px;font-size:22px">${name[0]}</div>
+        <div class="av av-xl av-img" style="margin:0 auto 12px"><img src="${avatarFile(name)}" alt="${name}"></div>
         <div style="font-size:17px;font-weight:800;color:var(--t1)">${name}</div>
         <div style="font-size:13px;font-weight:600;color:var(--t4);margin-top:4px">${role==='partner'?'Delivery Partner':'Sailor'}</div>
         <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
@@ -3019,7 +3042,7 @@ PAGES.analytics = function(c) {
   ];
   var tableRows = perfRows.map(function(row,i){
     var spark = row[4].map(function(v){ return '<div class="spark-bar" style="height:'+(v*2.5)+'px;background:var(--teal-400);opacity:0.7"></div>'; }).join('');
-    return '<tr class="tr-click" onclick="goTo(\'express\')"><td class="td-m">'+(i+1)+'</td><td><div class="flex aic g8">'+prodImg('sm')+'<span class="td-p">'+row[0]+'</span></div></td><td><span class="badge badge-navy">'+row[1]+'</span></td><td class="td-p">'+row[2]+'</td><td class="td-p w7">'+row[3]+'</td><td><div class="sparkline">'+spark+'</div></td></tr>';
+    return '<tr class="tr-click" onclick="goTo(\'express\')"><td class="td-m">'+(i+1)+'</td><td><div class="flex aic g8">'+prodImg('sm', row[1])+'<span class="td-p">'+row[0]+'</span></div></td><td><span class="badge badge-navy">'+row[1]+'</span></td><td class="td-p">'+row[2]+'</td><td class="td-p w7">'+row[3]+'</td><td><div class="sparkline">'+spark+'</div></td></tr>';
   }).join('');
 
   document.getElementById('analytics-table').innerHTML =
@@ -3057,7 +3080,7 @@ PAGES.sailors = function(c) {
 
   function sailorRow(s) {
     return '<tr class="tr-click">' +
-      '<td><div class="td-p">'+s.n+'</div><div class="td-m">'+s.e+'</div></td>' +
+      '<td><div class="flex aic g10">'+personImg(s.n,'av-sm')+'<div><div class="td-p">'+s.n+'</div><div class="td-m">'+s.e+'</div></div></div></td>' +
       '<td class="td-m">'+s.w+'</td><td class="td-m">'+s.j+'</td>' +
       '<td class="td-p w7">'+s.o+'</td>' +
       '<td><span class="camber w7">'+s.p.toLocaleString()+'</span><span class="td-m"> pts</span></td>' +
@@ -3148,12 +3171,12 @@ PAGES.orders = function(c) {
     return '<tr class="tr-click">' +
       '<td class="td-id">'+o.id+'</td>' +
       '<td><span class="badge badge-'+(mobile?'teal':'navy')+'" style="font-size:10.5px"><i class="ti '+(mobile?'ti-device-mobile':'ti-world')+'"></i> '+o.src+'</span></td>' +
-      '<td><span class="td-p">'+o.s+'</span></td>' +
-      '<td><span class="sm c3 w5 trunc" style="max-width:170px;display:block">'+o.it+'</span></td>' +
+      '<td><div class="flex aic g8">'+personImg(o.s,'av-sm')+'<span class="td-p">'+o.s+'</span></div></td>' +
+      '<td><div class="flex aic g8">'+prodImg('sm', o.items&&o.items[0]?o.items[0].name:o.it)+'<span class="sm c3 w5 trunc" style="max-width:150px;display:block">'+o.it+'</span></div></td>' +
       '<td class="td-m">'+o.sh+'</td>' +
       anchorageCell(o) +
       '<td style="color:'+pc+';font-size:12.5px;font-weight:600">'+o.pt+'</td>' +
-      '<td style="color:'+payc+';font-size:12.5px;font-weight:700">'+o.pay+'</td>' +
+      '<td style="color:'+payc+';font-size:12.5px;font-weight:700">'+o.pay.replace('✓', SYM_CHECK)+'</td>' +
       '<td class="td-m">'+o.cp+'</td>' +
       '<td class="td-p w7">'+o.t+'</td>' +
       '<td><span class="badge badge-'+o.sc+'">'+o.st+'</span></td>' +
@@ -3229,8 +3252,8 @@ PAGES.intents = function(c) {
   function intentRow(i) {
     return '<tr class="tr-click">' +
       '<td class="td-id xs">'+i.r+'</td>' +
-      '<td><span class="td-p">'+i.s+'</span></td>' +
-      '<td class="td-m" style="max-width:190px"><span class="trunc" style="display:block">'+i.it+'</span></td>' +
+      '<td><div class="flex aic g8">'+personImg(i.s,'av-sm')+'<span class="td-p">'+i.s+'</span></div></td>' +
+      '<td><div class="flex aic g8">'+prodImg('sm', i.it)+'<span class="td-m trunc" style="max-width:170px;display:block">'+i.it+'</span></div></td>' +
       '<td class="td-m">'+i.sh+'</td>' +
       '<td class="td-m">'+i.ar+'</td><td class="td-m">'+i.sy+'</td>' +
       '<td class="td-m">'+i.sb+'</td>' +
@@ -3292,9 +3315,9 @@ PAGES.requests = function(c) {
   function requestRow(i) {
     return '<tr class="tr-click">' +
       '<td class="td-id xs">'+i.r+'</td>' +
-      '<td><div class="td-p">'+i.n+'</div><div class="xs c4">'+i.e+'</div></td>' +
+      '<td><div class="flex aic g8">'+personImg(i.n,'av-sm')+'<div><div class="td-p">'+i.n+'</div><div class="xs c4">'+i.e+'</div></div></div></td>' +
       '<td class="td-m">'+i.ph+'</td>' +
-      '<td><div class="flex aic g8">'+prodImg('sm')+'<span class="td-m trunc" style="max-width:180px;display:block">'+i.prod+'</span></div></td>' +
+      '<td><div class="flex aic g8">'+prodImg('sm', i.prod)+'<span class="td-m trunc" style="max-width:180px;display:block">'+i.prod+'</span></div></td>' +
       '<td class="td-m">'+i.brand+'</td>' +
       '<td class="td-m" style="text-align:center">'+i.qty+'</td>' +
       '<td class="td-m">'+i.dt+'</td>' +
@@ -3342,6 +3365,7 @@ function viewSpecialRequest(req) {
       <div class="sec-label">Requested By</div>
       <div style="background:var(--navy-25);border-radius:var(--radius-md);padding:16px;margin-bottom:20px">
         <div class="flex aic g12 mb14">
+          ${personImg(req.n||'')}
           <div class="f1"><div class="w7 c1" style="font-size:15px">${req.n||'—'}</div><div class="xs c4">Sailor</div></div>
           <span class="badge badge-${req.sc||'neutral'}">${req.st||'Pending'}</span>
         </div>
@@ -3354,7 +3378,7 @@ function viewSpecialRequest(req) {
       </div>
       <div class="sec-label">Item Details</div>
       <div class="form-row">
-        <div class="fg"><label class="fg-label">Product Name</label><div class="ecard">${req.prod||'—'}</div></div>
+        <div class="fg"><label class="fg-label">Product Name</label><div class="ecard" style="display:flex;align-items:center;gap:10px">${prodImg('sm', req.prod||'')}<span>${req.prod||'—'}</span></div></div>
         <div class="fg"><label class="fg-label">Brand</label><div class="ecard">${req.brand||'—'}</div></div>
       </div>
       <div class="form-row">
@@ -3502,7 +3526,7 @@ PAGES.products = function(c) {
   function productRow(p) {
     var feat = p.f ? '<span class="badge badge-amber"><i class="ti ti-star"></i>Yes</span>' : '<span class="td-m">—</span>';
     return '<tr class="tr-click">' +
-      '<td>'+prodImg()+'</td>' +
+      '<td>'+prodImg('', p.c)+'</td>' +
       '<td><div class="td-p">'+p.n+'</div><div class="td-m">'+p.d+'</div></td>' +
       '<td><span class="badge badge-navy">'+p.c+'</span></td>' +
       '<td class="td-p w7">'+p.p+'</td>' +
@@ -3632,7 +3656,7 @@ PAGES.spares = function(c) {
 
   function spareRow(p) {
     return '<tr class="tr-click">' +
-      '<td>'+prodImg()+'</td>' +
+      '<td>'+prodImg('', p.c)+'</td>' +
       '<td><div class="td-p">'+p.n+'</div><div class="td-m">'+p.d+'</div></td>' +
       '<td><span class="badge badge-navy">'+p.c+'</span></td>' +
       '<td class="td-m mono">'+p.pn+'</td>' +
@@ -3747,7 +3771,7 @@ PAGES.express = function(c) {
   ];
   var rows = items.map(function(e) {
     return '<tr class="tr-click">' +
-      '<td>'+prodImg()+'</td>' +
+      '<td>'+prodImg('', e.c)+'</td>' +
       '<td class="td-p">'+e.n+'</td><td><span class="tag">'+e.c+'</span></td>' +
       '<td class="td-p w7">'+e.p+'</td><td class="td-m">'+e.sz+'</td>' +
       '<td><span class="badge badge-'+(e.s==='Active'?'success':'danger')+'">'+e.s+'</span></td>' +
@@ -3869,7 +3893,7 @@ PAGES.partners = function(c) {
   ];
   function partnerRow(d) {
     return '<tr class="tr-click">' +
-      '<td><div class="td-p">'+d.n+'</div></td>' +
+      '<td><div class="flex aic g10">'+personImg(d.n,'av-sm')+'<span class="td-p">'+d.n+'</span></div></td>' +
       '<td class="td-id">'+d.id+'</td><td class="td-m">'+d.p+'</td><td class="td-m">'+d.j+'</td>' +
       '<td class="td-m">'+d.t+'</td>' +
       '<td><div class="td-acts">' +
@@ -3940,7 +3964,7 @@ PAGES.assignments = function(c) {
   assignments.forEach(function(a) {
     var tr = document.createElement('tr');
     tr.className = 'tr-click';
-    tr.innerHTML = '<td class="td-id">'+a.e+'</td><td><span class="sm c1 w7">'+a.p.split(' ')[0]+'</span></td><td class="td-id xs">'+a.o+'</td><td class="td-m">'+a.d+'</td><td><span class="badge badge-'+a.sc+'">'+a.s+'</span></td><td class="td-m">'+a.t+'</td>';
+    tr.innerHTML = '<td class="td-id">'+a.e+'</td><td><div class="flex aic g6">'+personImg(a.p,'av-sm')+'<span class="sm c1 w7">'+a.p.split(' ')[0]+'</span></div></td><td class="td-id xs">'+a.o+'</td><td class="td-m">'+a.d+'</td><td><span class="badge badge-'+a.sc+'">'+a.s+'</span></td><td class="td-m">'+a.t+'</td>';
     tr.onclick = function() { drawerOrderDetail({id:a.o,enq:a.e,sailor:'Lois Becket',ship:'IMO 0123456',terminal:a.d,partner:a.p,payment:'Card · Paid',coupon:'—',total:'$70.45',status:a.s,items:[{name:'Items',qty:3,price:'$70.45'}]}); };
     abody.appendChild(tr);
   });
@@ -3982,7 +4006,7 @@ PAGES.verification = function(c) {
     return '<tr class="tr-click">' +
       '<td class="td-id">'+v.intent+'</td>' +
       '<td class="td-id">'+v.order+'</td>' +
-      '<td><span class="td-p">'+v.p.split(' ')[0]+'</span></td>' +
+      '<td><div class="flex aic g8">'+personImg(v.p,'av-sm')+'<span class="td-p">'+v.p.split(' ')[0]+'</span></div></td>' +
       '<td><span class="sm c3 trunc" style="max-width:200px;display:block">'+v.desc+'</span></td>' +
       '<td class="td-p w7">'+v.t+'</td>' +
       '<td class="w7 csuccess">'+(v.a!==null?v.a:'—')+'</td>' +
@@ -4013,7 +4037,7 @@ function modalItemDetail(enq) {
   ];
   var itemsHtml = itemsData.map(function(item) {
     var bc = item.sc === 'success' ? 'var(--success-icon)' : 'var(--danger-icon)';
-    return '<div class="ecard" style="border-left:3px solid '+bc+'"><div class="flex aic g8 mb8">'+prodImg('sm')+'<div class="sm w7 c1">'+item.n+'</div></div><div class="flex aic g8 mb10"><span class="tag">'+item.q+'</span>'+(item.a!=='—'?'<span class="tag">'+item.a+'</span>':'')+'</div><div class="flex aic jb"><span class="badge badge-'+item.sc+'">'+item.st+'</span>'+(item.st==='Unavailable'?'<button class="btn btn-secondary btn-xs" onclick="modalSubstitute(\''+item.n+'\')">Find Alt</button>':'')+'</div></div>';
+    return '<div class="ecard" style="border-left:3px solid '+bc+'"><div class="flex aic g8 mb8">'+prodImg('sm', item.n)+'<div class="sm w7 c1">'+item.n+'</div></div><div class="flex aic g8 mb10"><span class="tag">'+item.q+'</span>'+(item.a!=='—'?'<span class="tag">'+item.a+'</span>':'')+'</div><div class="flex aic jb"><span class="badge badge-'+item.sc+'">'+item.st+'</span>'+(item.st==='Unavailable'?'<button class="btn btn-secondary btn-xs" onclick="modalSubstitute(\''+item.n+'\')">Find Alt</button>':'')+'</div></div>';
   }).join('');
   showModal({
     title: (enq||'ENQ-0042') + ' — Item Detail',
@@ -4061,7 +4085,7 @@ PAGES.notifications = function(c) {
       <div class="card-hd"><div class="card-ttl"><i class="ti ti-send"></i>Compose Notification</div></div>
       <div class="card-body">
         <div class="fg"><label class="fg-label">Target Audience</label><select class="form-select"><option>All Sailors</option><option>All Delivery Partners</option><option>Specific Sailor</option><option>Specific Partner</option><option>Port-specific Sailors</option><option>Sailors with Pending Payment</option></select></div>
-        <div class="fg"><label class="fg-label">Notification Type</label><select class="form-select"><option>🔔 Payment Required</option><option>📦 Order Confirmed</option><option>🚗 Out for Delivery</option><option>🎁 Gift / Reward</option><option>⚠️ Product Update</option><option>📢 General Announcement</option><option>📋 Assignment (Partner)</option></select></div>
+        <div class="fg"><label class="fg-label">Notification Type</label><select class="form-select"><option>Payment Required</option><option>Order Confirmed</option><option>Out for Delivery</option><option>Gift / Reward</option><option>Product Update</option><option>General Announcement</option><option>Assignment (Partner)</option></select></div>
         <div class="fg"><label class="fg-label">Message</label><textarea class="form-input" style="height:90px" placeholder="Notification message…"></textarea><div class="fg-hint">Max 280 characters · Use {name}, {order_id} for personalisation.</div></div>
         <div class="form-row"><div class="fg"><label class="fg-label">Send Time</label><select class="form-select"><option>Send Immediately</option><option>Schedule</option></select></div><div class="fg"><label class="fg-label">Channel</label><select class="form-select"><option>Push + WhatsApp</option><option>Push Only</option><option>Email Only</option></select></div></div>
         <button class="btn btn-primary wf" onclick="toast('Notification sent successfully','success','send')"><i class="ti ti-send"></i>Send Notification</button>
@@ -4085,7 +4109,7 @@ PAGES.notifications = function(c) {
     var row = document.createElement('div');
     row.className = 'notif-item';
     row.style.cursor = 'pointer';
-    row.innerHTML = '<div class="notif-icon" style="background:'+n.bg+';color:'+n.c+'"><i class="ti '+n.i+'"></i></div><div class="f1"><div class="flex aic g8 mb4"><span class="w7 c1 sm">'+n.t+'</span><span class="xs c4">→ '+n.tg+'</span></div><div class="sm c3 w5">'+n.m+'</div></div><div class="notif-time">'+n.tm+'</div>';
+    row.innerHTML = '<div class="notif-icon" style="background:'+n.bg+';color:'+n.c+'"><i class="ti '+n.i+'"></i></div><div class="f1"><div class="flex aic g8 mb4"><span class="w7 c1 sm">'+n.t+'</span><span class="xs c4">'+SYM_ARROW+' '+n.tg+'</span></div><div class="sm c3 w5">'+n.m+'</div></div><div class="notif-time">'+n.tm+'</div>';
     row.onclick = function() { modalSendNotif({audience:n.tg, msg:n.m}); };
     nEl.appendChild(row);
   });
@@ -4094,7 +4118,7 @@ PAGES.notifications = function(c) {
 PAGES.chat = function(c) {
   c.innerHTML = `
   <div class="pg-header">
-    <div class="pg-header-l"><h1 class="pg-title">Chat Monitor</h1><p class="pg-sub"><span>Admin ↔ Sailors &amp; Delivery Partners — real-time communication</span></p></div>
+    <div class="pg-header-l"><h1 class="pg-title">Chat Monitor</h1><p class="pg-sub"><span>Admin, Sailors &amp; Delivery Partners — real-time communication</span></p></div>
   </div>
   <div style="display:grid;grid-template-columns:290px 1fr;gap:16px;height:580px">
     <div class="card" style="display:flex;flex-direction:column;overflow:hidden">
@@ -4150,7 +4174,7 @@ PAGES.chat = function(c) {
 
   function renderConversation(ch) {
     var r = ROLE[ch.role];
-    headEl.innerHTML = '<div class="av '+r.av+'">'+ch.n[0]+'</div>' +
+    headEl.innerHTML = personImg(ch.n) +
       '<div style="flex:1;min-width:0"><div class="flex aic g8" style="margin-bottom:3px"><span class="w7 c1">'+ch.n+'</span><span class="badge '+r.badge+'"><i class="ti '+r.icon+'"></i>&nbsp;'+r.label+'</span></div>' +
       '<div class="'+(ch.on?'sdot on xs csuccess':'xs c4 w6')+'">'+(ch.on?ch.status:'Offline')+'</div></div>' +
       '<span class="badge badge-neutral mono">'+ch.id+'</span>' +
@@ -4167,8 +4191,7 @@ PAGES.chat = function(c) {
   }
 
   function threadRowHtml(ch) {
-    var r = ROLE[ch.role];
-    return '<div style="position:relative"><div class="av '+r.av+'">'+ch.n[0]+'</div>'+(ch.on?'<div style="position:absolute;bottom:-1px;right:-1px;width:8px;height:8px;background:var(--green-icon);border-radius:50%;border:2px solid var(--surface)"></div>':'')+'</div>' +
+    return '<div style="position:relative">'+personImg(ch.n)+(ch.on?'<div style="position:absolute;bottom:-1px;right:-1px;width:8px;height:8px;background:var(--green-icon);border-radius:50%;border:2px solid var(--surface)"></div>':'')+'</div>' +
       '<div style="flex:1;min-width:0"><div class="sm w7 c1 trunc">'+ch.n+'</div><div class="xs c4 w5 trunc">'+ch.l+'</div></div>' +
       '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="xs c4 w6">'+ch.tm+'</span>'+(ch.un>0?'<span class="badge badge-danger" style="padding:1px 5px;font-size:10px">'+ch.un+'</span>':'')+'</div>';
   }
@@ -4228,7 +4251,7 @@ PAGES.support = function(c) {
   tickets.forEach(function(t) {
     var tr = document.createElement('tr');
     tr.className = 'tr-click';
-    tr.innerHTML = '<td class="td-id">'+t.id+'</td><td class="sm c3 w6">'+t.f+'</td><td class="sm c3 w5">'+t.i+'</td><td><button class="btn btn-ghost btn-xs">Open</button></td>';
+    tr.innerHTML = '<td class="td-id">'+t.id+'</td><td><div class="flex aic g8">'+personImg(t.f,'av-sm')+'<span class="sm c3 w6">'+t.f+'</span></div></td><td class="sm c3 w5">'+t.i+'</td><td><button class="btn btn-ghost btn-xs">Open</button></td>';
     tr.onclick = function() { modalTicket({id:t.id,from:t.f,issue:t.i,priority:t.p,type:'Sailor'}); };
     tr.querySelector('button').onclick = function(e){ e.stopPropagation(); modalTicket({id:t.id,from:t.f,issue:t.i,priority:t.p,type:'Sailor'}); };
     tbody.appendChild(tr);
@@ -4256,7 +4279,7 @@ PAGES.sellers = function(c) {
   ];
   var rows = sellers.map(function(s) {
     return '<tr class="tr-click">' +
-      '<td><div class="flex aic g10"><div class="av av-purple">'+s.n[0]+'</div><span class="td-p">'+s.n+'</span></div></td>' +
+      '<td><div class="flex aic g10">'+personImg(s.n)+'<span class="td-p">'+s.n+'</span></div></td>' +
       '<td class="td-m">'+s.e+'</td>' +
       '<td class="w7 c1">'+s.b+'</td>' +
       '<td class="td-m">'+s.dt+'</td>' +
