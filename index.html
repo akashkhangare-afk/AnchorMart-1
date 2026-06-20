@@ -792,6 +792,7 @@ textarea.form-input { height: auto; padding: 10px 12px; resize: vertical; width:
 
 /* Product thumb */
 .prod-thumb { width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--surface-alt); border: 1px solid var(--border-sm); display: flex; align-items: center; justify-content: center; color: var(--t4); font-size: 18px; flex-shrink: 0; overflow: hidden; }
+.prod-thumb.sm { width: 32px; height: 32px; font-size: 14px; }
 
 /* Stars */
 .stars { color: var(--amber-400); font-size: 12.5px; letter-spacing: 1px; }
@@ -1246,6 +1247,7 @@ textarea.form-input { height: auto; padding: 10px 12px; resize: vertical; line-h
       <div class="nav-item" onclick="navigate('orders',this)" data-page="orders"><i class="ti ti-package"></i>Orders<span class="nav-badge mla">12</span></div>
       <div class="nav-item" onclick="navigate('intents',this)" data-page="intents"><i class="ti ti-file-invoice"></i>Intents<span class="nav-badge warning mla">8</span></div>
       <div class="nav-item" onclick="navigate('requests',this)" data-page="requests"><i class="ti ti-clipboard-text"></i>Special Requests<span class="nav-badge warning mla">5</span></div>
+      <div class="nav-item" onclick="navigate('cancellation',this)" data-page="cancellation"><i class="ti ti-receipt-refund"></i>Special Request Cancellation</div>
       <div class="nav-item" onclick="navigate('products',this)" data-page="products"><i class="ti ti-box-seam"></i>Products</div>
       <div class="nav-item" onclick="navigate('spares',this)" data-page="spares"><i class="ti ti-engine"></i>Marine Emergency Spares</div>
       <div class="nav-item" onclick="navigate('express',this)" data-page="express"><i class="ti ti-bolt"></i>Express Items</div>
@@ -1480,6 +1482,7 @@ var PAGE_TITLES = {
   orders:       'Orders Management',
   intents:      'Intent Requests',
   requests:     'Special Request Items',
+  cancellation: 'Special Request Cancellation',
   products:     'Products & Catalog',
   spares:       'Marine Emergency Spares',
   express:      'Express Items',
@@ -1868,7 +1871,6 @@ function modalAddSailor(data) {
         <div class="seg" style="margin-top:4px">
           <div class="seg-btn active" onclick="segClick(this)">Active</div>
           <div class="seg-btn" onclick="segClick(this)">Inactive</div>
-          <div class="seg-btn" onclick="segClick(this)">Blocked</div>
         </div>
       </div>
     `,
@@ -1878,38 +1880,68 @@ function modalAddSailor(data) {
 
 /* ── ORDER DETAIL DRAWER ── */
 function drawerOrderDetail(order) {
-  order = order || {id:'#AM2458',sailor:'Lois Becket',ship:'IMO 0123456',terminal:'Anchorage 2',items:[{name:'Titan Watch',qty:1,price:'$75.00'},{name:'Card Holder',qty:1,price:'$12.00'}],total:'$84.00',status:'In Progress',partner:'Rahul Singh',payment:'Card · Paid',coupon:'SHIP10'};
+  order = order || {id:'#AM2458',sailor:'Lois Becket',source:'Mobile App',ship:'IMO 0123456',terminal:'Anchorage 2',items:[{name:'Titan Watch',qty:1,price:'$75.00'},{name:'Card Holder',qty:1,price:'$12.00'}],total:'$84.00',status:'In Progress',sc:'warning',partner:'Rahul Singh',payment:'Card · Paid',coupon:'SHIP10'};
+  /* Status-aware delivery timeline — reflects the order's tab/status (New, Verifying, Awaiting Payment, In Progress, Delivered, Cancelled) */
+  var STEPS = [
+    {icon:'ti-file-invoice',t:'Intent submitted',d:'22 Apr · '+(order.intent||'#INT-0047')},
+    {icon:'ti-checks',t:'Intent confirmed / verified',d:'22 Apr · 14:58'},
+    {icon:'ti-credit-card',t:'Payment confirmed — '+(order.total||''),d:'22 Apr · 15:24'},
+    {icon:'ti-user-check',t:'Assigned to '+(order.partner||'partner'),d:'22 Apr · 15:30'},
+    {icon:'ti-motorbike',t:'Out for delivery',d:'En route to '+(order.terminal||'ship')},
+    {icon:'ti-package-check',t:'Delivery confirmed',d:order.delivered?'Delivered to ship':'Awaiting'},
+  ];
+  var STAGE = {'New':0,'Verifying':1,'Awaiting Payment':2,'In Progress':4,'Delivered':6,'Cancelled':-1};
+  var stg = STAGE[order.status]; if (stg === undefined) stg = 4;
+  var timelineHtml = STEPS.map(function(s,i){
+    var st = order.status==='Cancelled' ? (i<2?'done':'pend') : (i<stg?'done':(i===stg?'active':'pend'));
+    return '<div class="tl-c-item"><div class="tl-c-dot '+st+'"><i class="ti '+s.icon+'"></i></div><div class="tl-c-body"><div class="tl-c-title">'+s.t+'</div><div class="tl-c-sub">'+s.d+'</div></div></div>';
+  }).join('');
+  if (order.status==='Cancelled') timelineHtml += '<div class="tl-c-item"><div class="tl-c-dot pend" style="background:var(--danger-bg);color:var(--danger-text)"><i class="ti ti-x"></i></div><div class="tl-c-body"><div class="tl-c-title">Order cancelled</div><div class="tl-c-sub">Refund processed</div></div></div>';
+  var srcBadge = order.source ? '<span class="badge badge-'+(order.source==='Mobile App'?'teal':'navy')+'" style="font-size:13px;padding:5px 12px"><i class="ti '+(order.source==='Mobile App'?'ti-device-mobile':'ti-world')+'"></i> '+order.source+'</span>' : '';
   showDrawer({
     title: 'Order ' + order.id,
     size: 'lg',
     body: `
-      <div style="display:flex;gap:8px;margin-bottom:20px">
-        <span class="badge badge-warning" style="font-size:13px;padding:5px 12px">${order.status}</span>
-        <span class="badge badge-teal" style="font-size:13px;padding:5px 12px"><i class="ti ti-clock"></i>In Progress</span>
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+        <span class="badge badge-${order.sc||'warning'}" style="font-size:13px;padding:5px 12px">${order.status}</span>
+        ${srcBadge}
       </div>
-      <div class="tl-compact mb20">
-        ${[
-          {s:'done',icon:'ti-file-invoice',t:'Intent submitted',d:'22 Apr · #INT20260422-0047'},
-          {s:'done',icon:'ti-checks',t:'Intent confirmed by admin',d:'22 Apr · 14:58'},
-          {s:'done',icon:'ti-credit-card',t:'Payment confirmed — $84.00',d:'22 Apr · 15:24'},
-          {s:'done',icon:'ti-user-check',t:'Assigned to Rahul Singh',d:'22 Apr · 15:30'},
-          {s:'active',icon:'ti-motorbike',t:'Out for delivery',d:'En route to Berth 7'},
-          {s:'pend',icon:'ti-package-check',t:'Delivery confirmed',d:'Awaiting'},
-        ].map(function(tl){ return '<div class="tl-c-item"><div class="tl-c-dot '+tl.s+'"><i class="ti '+tl.icon+'"></i></div><div class="tl-c-body"><div class="tl-c-title">'+tl.t+'</div><div class="tl-c-sub">'+tl.d+'</div></div></div>'; }).join('')}
-      </div>
+      ${order.enq ? `
+      <div class="sec-label"><i class="ti ti-route"></i> ${order.enq} — Live Steps</div>
+      <div class="card mb20"><div class="card-body">
+        <div class="dstep done"><div class="dstep-icon"><i class="ti ti-check"></i></div><div class="f1"><div class="sm w7 c1">Items verified at shop</div><div class="xs c4">2 available · 1 substituted · 10:04 AM</div></div><span class="badge badge-success">Done</span></div>
+        <div class="dstep done"><div class="dstep-icon"><i class="ti ti-currency-dollar"></i></div><div class="f1"><div class="sm w7 c1">Payment confirmed — ${order.total}</div><div class="xs c4">Via payment link · 10:52 AM</div></div><span class="badge badge-success">Done</span></div>
+        <div class="dstep active"><div class="dstep-icon"><i class="ti ti-package"></i></div><div class="f1"><div class="sm w7 c1">Items picked up from shop</div><div class="xs c4">${order.partner} en route to ${order.terminal}</div></div><span class="badge badge-warning">Active</span></div>
+        <div class="dstep pending"><div class="dstep-icon"><i class="ti ti-anchor"></i></div><div class="f1"><div class="sm w7 c1">Deliver to ship</div><div class="xs c4">Handover at ${order.terminal}</div></div><span class="badge badge-neutral">Pending</span></div>
+        <div class="flex g8 mt16">
+          <button class="btn btn-secondary btn-sm" onclick="toast('Chat opened with ${order.partner}','','message')"><i class="ti ti-message"></i>Chat Partner</button>
+          <button class="btn btn-accent btn-sm" onclick="toast('Sailor notified of ETA','success','bell')"><i class="ti ti-bell"></i>Notify Sailor</button>
+        </div>
+      </div></div>` : ''}
+      <div class="tl-compact mb20">${timelineHtml}</div>
       <div class="sec-label">Order Information</div>
       <div class="detail-kv"><div class="detail-k">Sailor</div><div class="detail-v">${order.sailor}</div></div>
+      <div class="detail-kv"><div class="detail-k">Order Source</div><div class="detail-v">${order.source||'—'}</div></div>
+      <div class="detail-kv"><div class="detail-k">Intent Ref</div><div class="detail-v mono">${order.intent||'—'}</div></div>
       <div class="detail-kv"><div class="detail-k">Ship / IMO</div><div class="detail-v mono cteal">${order.ship}</div></div>
       <div class="detail-kv"><div class="detail-k">Terminal</div><div class="detail-v">${order.terminal}</div></div>
+      ${order.chTo ? `<div class="detail-kv"><div class="detail-k">Anchorage Change</div><div class="detail-v"><span class="c4">${order.chFrom}</span> → <span class="cteal w7">${order.chTo}</span> · +${order.ecost} ${order.paid?'<span class="badge badge-success" style="font-size:10px">Paid</span>':'<span class="badge badge-warning" style="font-size:10px">Balance due</span>'}</div></div>` : ''}
       <div class="detail-kv"><div class="detail-k">Delivery Partner</div><div class="detail-v">${order.partner}</div></div>
-      <div class="detail-kv"><div class="detail-k">Payment</div><div class="detail-v csuccess">${order.payment}</div></div>
+      <div class="detail-kv"><div class="detail-k">Payment</div><div class="detail-v ${order.payment&&order.payment.indexOf('Paid')>=0?'csuccess':''}">${order.payment}</div></div>
       <div class="detail-kv"><div class="detail-k">Coupon</div><div class="detail-v">${order.coupon||'None'}</div></div>
       <div class="sec-label mt16">Items</div>
-      ${(order.items||[]).map(function(item){ return '<div class="detail-kv"><div class="detail-k w5 c4">'+item.name+' ×'+item.qty+'</div><div class="detail-v">'+item.price+'</div></div>'; }).join('')}
+      ${(order.items||[]).map(function(item){ return '<div class="detail-kv"><div class="detail-k w5 c4" style="display:flex;align-items:center;gap:8px">'+prodImg('sm')+'<span>'+item.name+' ×'+item.qty+'</span></div><div class="detail-v">'+item.price+'</div></div>'; }).join('')}
       <div style="background:var(--navy-25);border-radius:var(--radius-md);padding:14px 16px;margin-top:14px">
         <div class="flex jb" style="margin-bottom:6px"><span class="sm c3 w6">Order Total</span><span class="w8" style="font-size:16px">${order.total}</span></div>
       </div>
+      ${order.delivered ? `
+      <div class="sec-label mt16"><i class="ti ti-camera"></i> Delivery Proof</div>
+      <div style="border:1px solid var(--border-sm);border-radius:var(--radius-md);overflow:hidden;max-width:280px">
+        <img src="${DELIVERY_PROOF_IMG}" alt="Delivery proof photo" style="width:100%;display:block">
+        <div class="xs c4" style="padding:8px 10px;background:var(--surface-alt)"><i class="ti ti-photo"></i> Uploaded by ${order.partner} on delivery</div>
+      </div>` : ''}
       <div class="flex g8 mt20">
+        ${((order.chTo && !order.paid) || order.status==='Awaiting Payment') ? `<button class="btn btn-primary" onclick="closeDrawer();toast('Payment link sent to ${order.sailor}','success','send')"><i class="ti ti-send"></i>Send Payment Link</button>` : ''}
         <button class="btn btn-accent" onclick="toast('Notification sent to sailor','success','bell')"><i class="ti ti-bell"></i>Notify Sailor</button>
         <button class="btn btn-danger mla" onclick="closeDrawer();showConfirm({title:'Cancel Order',msg:'This will cancel order ${order.id} and trigger refund processing. This cannot be undone.',icon:'x-circle',danger:true,confirmText:'Cancel Order'},function(){toast('Order cancelled','danger','x')})"><i class="ti ti-x"></i>Cancel</button>
       </div>
@@ -1934,6 +1966,12 @@ var PROD_CAT_FIELDS = {
   'Food':['Expiry Date','Ingredients','Calories']
 };
 var PROD_COUNTRIES = ['India','Singapore','China','United States','United Kingdom','Germany','Japan','UAE','Philippines','Vietnam'];
+
+/* Product image placeholder (grey image frame, shown wherever a product is listed) */
+var PROD_PH_IMG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><rect width='40' height='40' fill='%23eef1f5'/><path d='M11 28l6-7 4 4 5-8 5 11z' fill='%23c2cbd6'/><circle cx='15' cy='14' r='3' fill='%23c2cbd6'/></svg>";
+function prodImg(cls) { return '<div class="prod-thumb '+(cls||'')+'"><img src="'+PROD_PH_IMG+'" alt="product"></div>'; }
+/* Delivery proof photo placeholder (uploaded by the delivery partner from the mobile app) */
+var DELIVERY_PROOF_IMG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='180'><rect width='280' height='180' fill='%23e7ecf3'/><rect x='98' y='58' width='84' height='60' rx='4' fill='%23b8c2d0'/><path d='M98 70h84M140 58v60' stroke='%23e7ecf3' stroke-width='3'/><circle cx='140' cy='40' r='12' fill='%2310b5a8'/><path d='M135 40l4 4 7-8' stroke='%23fff' stroke-width='2.5' fill='none'/><text x='140' y='150' font-family='sans-serif' font-size='12' fill='%237a8699' text-anchor='middle'>Delivery photo</text></svg>";
 
 function modalAddProduct(data) {
   data = data || {};
@@ -1982,6 +2020,16 @@ function modalAddProduct(data) {
           <div class="fg"><label class="fg-label">Status</label><select class="form-select"><option>Draft</option><option ${data.name?'':'selected'}>Active</option><option>Archived</option></select></div>
         </div>
         <div id="pp-cat-fields"></div>
+
+        ${data.fromExpress ? '' : `
+        <div class="sec-label mt20">Visibility &amp; Flags</div>
+        <div class="form-row" style="margin-bottom:14px">
+          <label class="switch"><input type="checkbox" ${data.sailors===false?'':'checked'}><div class="switch-track"></div><span class="switch-label">Available to Sailors</span></label>
+          <label class="switch"><input type="checkbox" ${data.deal?'checked':''}><div class="switch-track"></div><span class="switch-label">Deal Product</span></label>
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label class="switch"><input type="checkbox" ${data.express?'checked':''}><div class="switch-track"></div><span class="switch-label">Express Item</span></label>
+        </div>`}
       </div>
 
       <div id="pt-media" class="prod-tab" style="display:none">
@@ -2185,7 +2233,7 @@ function prodAddVariant() {
   if (!tb) return;
   var tr = document.createElement('tr');
   tr.innerHTML =
-    '<td><button type="button" class="btn btn-ghost btn-sm btn-icon" title="Variant image"><i class="ti ti-photo"></i></button></td>' +
+    '<td><button type="button" class="btn btn-ghost btn-sm btn-icon" title="Variant image" onclick="toast(\'Upload a variant image\',\'\',\'photo\')"><i class="ti ti-photo"></i></button></td>' +
     '<td><input class="form-input" placeholder="e.g. Red / L" style="width:120px"></td>' +
     '<td><input class="form-input" placeholder="SKU" style="width:100px"></td>' +
     '<td><input class="form-input" placeholder="Barcode" style="width:110px"></td>' +
@@ -2207,14 +2255,23 @@ function modalAssignPartner(orderId) {
     icon: 'motorbike', iconBg:'var(--teal-50)', iconColor:'var(--teal-600)',
     body: `
       <div class="fg"><label class="fg-label">Select Partner</label>
-        ${[
-          {n:'Aisha Karimi',id:'DP-00056',p:'Singapore',s:'Free',sc:'success'},
-          {n:'David Lim',id:'DP-00033',p:'Jurong',s:'Free',sc:'success'},
-          {n:'Pita Havili',id:'DP-00087',p:'Singapore',s:'2 active',sc:'warning'},
-        ].map(function(p){ return '<div class="ecard mb10" style="cursor:pointer" onclick="this.style.background=\'var(--navy-25)\';this.style.borderColor=\'var(--navy-300)\'"><div class="flex aic g12"><div class="av av-teal">'+p.n[0]+'</div><div class="f1"><div class="sm w7 c1">'+p.n+'</div><div class="xs c4">'+p.id+' · '+p.p+'</div></div><span class="badge badge-'+p.sc+'">'+p.s+'</span></div></div>'; }).join('')}
+        <select class="form-select">
+          <option value="">Choose a delivery partner…</option>
+          <option>Aisha Karimi · DP-00056 · Singapore (Free)</option>
+          <option>David Lim · DP-00033 · Jurong (Free)</option>
+          <option>Pita Havili · DP-00087 · Singapore (2 active)</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fg-label">Select Intent / Order</label>
+        <select class="form-select">
+          <option value="">Choose an intent or order…</option>
+          <option>#INT-0047 · Lois Becket</option>
+          <option>#INT-0051 · Ali Mahmoud</option>
+          <option>#AM2467 · Sara Chen</option>
+          <option>#AM2470 · James Wren</option>
+        </select>
       </div>
       <div class="fg"><label class="fg-label">Special Instructions</label><textarea class="form-input" placeholder="Instructions for the delivery partner…" style="height:70px"></textarea></div>
-      <div class="fg"><label class="fg-label">Target ETA</label><input class="form-input" type="time" value="12:30"></div>
     `,
     footer: '<button class="btn btn-primary" onclick="closeModal();toast(\'Partner assigned successfully\',\'success\',\'check\')"><i class="ti ti-check"></i>Assign Partner</button>'
   });
@@ -2276,7 +2333,7 @@ function modalAddCoupon(data) {
           ${[
             {n:'Lois Becket',id:'SLR-0012'},{n:'Ali Mahmoud',id:'SLR-0048'},{n:'James Wren',id:'SLR-0071'},
             {n:'Sara Chen',id:'SLR-0093'},{n:'Ravi Patel',id:'SLR-0104'},{n:'Maria Santos',id:'SLR-0119'},
-          ].map(function(u){ return '<label class="flex aic g10" style="padding:7px 8px;border-radius:var(--radius-sm);cursor:pointer"><input type="checkbox" style="width:16px;height:16px"><div class="av av-sm av-teal">'+u.n[0]+'</div><div class="f1"><div class="sm w7 c1">'+u.n+'</div><div class="xs c4 mono">'+u.id+'</div></div></label>'; }).join('')}
+          ].map(function(u){ return '<label class="flex aic g10" style="padding:7px 8px;border-radius:var(--radius-sm);cursor:pointer"><input type="checkbox" style="width:16px;height:16px"><div class="f1"><div class="sm w7 c1">'+u.n+'</div><div class="xs c4 mono">'+u.id+'</div></div></label>'; }).join('')}
         </div>
       </div>
     `,
@@ -2410,22 +2467,6 @@ function submitAddNotification() {
 function modalReviewIntent(intent) {
   intent = (typeof intent === 'object' && intent) ? intent : { r: intent };
   var ref = intent.r;
-  var changedBlock = intent.chTo ? `
-      <div class="sec-label">Changed Anchorage</div>
-      <div style="border:1px solid var(--warning-200,#fde68a);background:var(--warning-25,#fffbeb);border-radius:var(--radius-md);padding:14px;margin-bottom:16px">
-        <div class="flex aic g16" style="margin-bottom:12px">
-          <div class="f1"><div class="xs c4">Intended Location</div><div class="sm w7 c1">${intent.sh.split('·')[0].trim()} · ${intent.chFrom}</div></div>
-          <i class="ti ti-arrows-exchange cteal" style="font-size:20px"></i>
-          <div class="f1"><div class="xs c4">Changed Location</div><div class="sm w7 cteal">${intent.sh.split('·')[0].trim()} · ${intent.chTo}</div></div>
-        </div>
-        <div class="flex aic g12" style="border-top:1px solid var(--warning-200,#fde68a);padding-top:10px">
-          <div class="f1 sm w7 c1">Additional Shipping Cost</div>
-          <div class="sm w7 camber">+${intent.ecost}</div>
-          ${intent.paid
-            ? '<span class="badge badge-success"><i class="ti ti-check"></i> Balance Paid</span>'
-            : '<button class="btn btn-primary btn-sm" onclick="closeModal();toast(\'Payment link for ' + intent.ecost + ' sent to ' + intent.s + '\',\'success\',\'send\')"><i class="ti ti-send"></i>Send Payment Link</button>'}
-        </div>
-      </div>` : '';
   showModal({
     title: 'Review Intent Request',
     sub: ref || '#INT20260422-0047',
@@ -2440,7 +2481,6 @@ function modalReviewIntent(intent) {
           <div class="mini-stat"><div class="mini-stat-val">${intent.ar || '24 Apr'}</div><div class="mini-stat-lbl">Arrival Date</div></div>
         </div>
       </div>
-      ${changedBlock}
       <div class="sec-label">Requested Items</div>
       ${[
         {n:'Titan Quartz Analog Watch',q:1,a:true},{n:'Brown Leather Card Holder',q:1,a:true},{n:'Bombay Shaving Kit',q:1,a:null},
@@ -2565,6 +2605,33 @@ function modalTicket(ticket) {
   });
 }
 
+/* ── NEW SUPPORT TICKET FORM ── */
+function modalNewTicket() {
+  showModal({
+    title: 'New Support Ticket',
+    sub: 'Raise a ticket on behalf of a sailor or delivery partner',
+    icon: 'lifebuoy', iconBg:'var(--teal-50)', iconColor:'var(--teal-600)',
+    size: 'lg',
+    body: `
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">Raised By</label><select class="form-select" id="nt-role"><option>Sailor</option><option>Delivery Partner</option></select></div>
+        <div class="fg"><label class="fg-label">Name</label><input class="form-input" id="nt-name" placeholder="e.g. Lois Becket"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">Related Order ID <span class="xs c4">(optional)</span></label><input class="form-input" id="nt-order" placeholder="e.g. #AM2458"></div>
+        <div class="fg"><label class="fg-label">Category</label><select class="form-select"><option>Order Issue</option><option>Payment</option><option>Delivery</option><option>Account</option><option>Coupon / Rewards</option><option>Other</option></select></div>
+      </div>
+      <div class="fg"><label class="fg-label">Subject</label><input class="form-input" id="nt-subject" placeholder="Short summary of the issue"></div>
+      <div class="fg"><label class="fg-label">Priority</label>
+        <div class="seg"><div class="seg-btn active" onclick="segClick(this)">Low</div><div class="seg-btn" onclick="segClick(this)">High</div><div class="seg-btn" onclick="segClick(this)">Urgent</div></div>
+      </div>
+      <div class="fg" style="margin-bottom:0"><label class="fg-label">Description</label><textarea class="form-input" id="nt-desc" style="height:96px" placeholder="Describe the issue in detail…"></textarea></div>
+    `,
+    footer: '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+            '<button class="btn btn-primary" onclick="var s=document.getElementById(\'nt-subject\').value.trim();if(!s){toast(\'Enter a subject\',\'warning\');return;}closeModal();toast(\'Support ticket created\',\'success\',\'check\')"><i class="ti ti-plus"></i>Create Ticket</button>'
+  });
+}
+
 /* ── PROFILE DRAWER ── */
 function drawerProfile(name, role) {
   showDrawer({
@@ -2576,7 +2643,6 @@ function drawerProfile(name, role) {
         <div style="font-size:13px;font-weight:600;color:var(--t4);margin-top:4px">${role==='partner'?'Delivery Partner':'Sailor'}</div>
         <div style="margin-top:12px;display:flex;gap:8px;justify-content:center">
           <span class="badge badge-success">Active</span>
-          ${role==='partner'?'<span class="badge badge-teal">On Duty</span>':''}
         </div>
       </div>
       <div class="sec-label">Contact</div>
@@ -2585,12 +2651,14 @@ function drawerProfile(name, role) {
       <div class="detail-kv"><div class="detail-k">Joined</div><div class="detail-v">March 2023</div></div>
       <div class="sec-label mt16">Statistics</div>
       <div class="form-row" style="margin-bottom:0">
-        <div class="mini-stat"><div class="mini-stat-val">${role==='partner'?'124':'18'}</div><div class="mini-stat-lbl">${role==='partner'?'Deliveries':'Orders'}</div></div>
-        <div class="mini-stat"><div class="mini-stat-val">${role==='partner'?'4.9':'$84'}</div><div class="mini-stat-lbl">${role==='partner'?'Rating':'Avg Order'}</div></div>
-        <div class="mini-stat"><div class="mini-stat-val">${role==='partner'?'$842':'2,450'}</div><div class="mini-stat-lbl">${role==='partner'?'Earned':'Loyalty Pts'}</div></div>
+        ${role==='partner'
+          ? '<div class="mini-stat"><div class="mini-stat-val">124</div><div class="mini-stat-lbl">Deliveries</div></div>'
+          : '<div class="mini-stat"><div class="mini-stat-val">18</div><div class="mini-stat-lbl">Orders</div></div>'+
+            '<div class="mini-stat"><div class="mini-stat-val">$84</div><div class="mini-stat-lbl">Avg Order</div></div>'+
+            '<div class="mini-stat"><div class="mini-stat-val">2,450</div><div class="mini-stat-lbl">Loyalty Pts</div></div>'}
       </div>
     `,
-    footer: '<button class="btn btn-ghost" onclick="closeDrawer()">Close</button><button class="btn btn-secondary" onclick="toast(\'Message sent\',\'success\',\'message\')"><i class="ti ti-message"></i>Send Message</button><button class="btn btn-primary" onclick="closeDrawer();' + (role==='partner'?'modalAddPartner({name:\''+name+'\'}':'modalAddSailor({name:\''+name+'\'}') + ')"><i class="ti ti-edit"></i>Edit Profile</button>'
+    footer: '<button class="btn btn-ghost" onclick="closeDrawer()">Close</button><button class="btn btn-primary" onclick="closeDrawer();' + (role==='partner'?'modalAddPartner({name:\''+name+'\'}':'modalAddSailor({name:\''+name+'\'}') + ')"><i class="ti ti-edit"></i>Edit Profile</button>'
   });
 }
 
@@ -2739,11 +2807,9 @@ function drillProductList(){
   DRILL.filtered = filtered;
   var CAP = 50, shown = filtered.slice(0, CAP);
   var rows = shown.map(function(p,i){
-    var g = p.growth >= 0;
     return '<div class="drill-prow" data-pi="'+i+'">' +
       '<div style="flex:1;min-width:0"><div class="sm w7 c1 trunc">'+p.name+'</div><div class="xs c4 mt4 mono">'+p.sku+'</div></div>' +
       '<div class="sm w7 c2" style="width:92px;text-align:right">$'+p.revenue.toLocaleString()+'</div>' +
-      '<div class="sm w7" style="width:62px;text-align:right;color:'+(g?'var(--green-text)':'var(--danger-text)')+'">'+(g?'↑':'↓')+' '+Math.abs(p.growth)+'%</div>' +
       '<i class="ti ti-chevron-right c4" style="margin-left:6px"></i></div>';
   }).join('');
   var note = filtered.length > CAP
@@ -2771,15 +2837,12 @@ function drillProductView(){
   var max = Math.max.apply(null, p.units), days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   var bars = p.units.map(function(v,i){ return '<div class="chart-bar teal" style="height:'+((v/max)*100).toFixed(1)+'%" title="'+days[i]+': '+v+' units"></div>'; }).join('');
   var labels = days.map(function(d){ return '<div class="chart-label">'+d+'</div>'; }).join('');
-  var g = p.growth >= 0;
   return '' +
     '<div class="flex aic g8 mb16"><span class="badge badge-navy">'+DRILL.sub+'</span><span class="mono xs c4">'+p.sku+'</span></div>' +
     '<div class="flex aic g20 mb20" style="flex-wrap:wrap">' +
       '<div><div class="metric-lbl">Revenue (7d)</div><div class="metric-val" style="color:var(--teal-700)">$'+p.revenue.toLocaleString()+'</div></div>' +
       '<div class="metric-sep"></div>' +
       '<div><div class="metric-lbl">Units Sold</div><div class="metric-val">'+p.totalUnits.toLocaleString()+'</div></div>' +
-      '<div class="metric-sep"></div>' +
-      '<div><div class="metric-lbl">Growth</div><div class="metric-val" style="color:'+(g?'var(--green-text)':'var(--danger-text)')+'">'+(g?'↑':'↓')+' '+Math.abs(p.growth)+'%</div></div>' +
     '</div>' +
     '<div class="sec-label">Daily Units — Last 7 Days</div>' +
     '<div class="bar-chart" style="height:130px">'+bars+'</div><div class="chart-labels">'+labels+'</div>' +
@@ -2793,7 +2856,7 @@ function drillDownloadProduct(){
   var p = DRILL.product, days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   var rows = [
     ['Product', p.name], ['SKU', p.sku], ['Category', DRILL.cat], ['Subcategory', DRILL.sub],
-    ['Total Units (7d)', p.totalUnits], ['Revenue (7d)', '$'+p.revenue], ['Growth', (p.growth>=0?'+':'')+p.growth+'%'],
+    ['Total Units (7d)', p.totalUnits], ['Revenue (7d)', '$'+p.revenue],
     ['', ''], ['Day', 'Units Sold']
   ];
   p.units.forEach(function(u,i){ rows.push([days[i], u]); });
@@ -2802,8 +2865,8 @@ function drillDownloadProduct(){
 }
 
 function drillDownloadSub(){
-  var headers = ['#','Product','SKU','Category','Subcategory','Units (7d)','Revenue','Growth %'];
-  var rows = DRILL.products.map(function(p,i){ return [i+1, p.name, p.sku, DRILL.cat, DRILL.sub, p.totalUnits, '$'+p.revenue, (p.growth>=0?'+':'')+p.growth]; });
+  var headers = ['#','Product','SKU','Category','Subcategory','Units (7d)','Revenue'];
+  var rows = DRILL.products.map(function(p,i){ return [i+1, p.name, p.sku, DRILL.cat, DRILL.sub, p.totalUnits, '$'+p.revenue]; });
   downloadExcel(DRILL.cat+' '+DRILL.sub+' all products.xls', headers, rows);
   toast('Exporting '+DRILL.products.length.toLocaleString()+' products to Excel…','success','download');
 }
@@ -2825,9 +2888,6 @@ PAGES.dashboard = function(c) {
         <div style="font-size:11.5px;font-weight:800;color:rgba(255,255,255,.85);letter-spacing:1.4px;text-transform:uppercase;margin-bottom:8px">Operations Dashboard · Friday, 29 May 2026</div>
         <h1 style="font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px;color:#fff">Welcome back, Super Admin</h1>
         <p style="font-size:14px;color:rgba(255,255,255,.62);max-width:560px;line-height:1.65;margin:0">You have <b style="color:#fff">6 verifications</b> to review, <b style="color:#fff">7 intents</b> awaiting payment, and <b style="color:#fff">184 orders</b> in flight today.</p>
-      </div>
-      <div class="flex g8 fsh0">
-        <button class="btn btn-sm" style="background:#fff;color:var(--teal-700);border-color:#fff;font-weight:700" onclick="exportData('Excel')"><i class="ti ti-download"></i>Export to Excel</button>
       </div>
     </div>
   </div>
@@ -2890,6 +2950,12 @@ PAGES.dashboard = function(c) {
       <div class="stat-val">5</div>
       <div class="stat-foot"><span>Awaiting review</span></div>
     </div>
+    <div class="stat-card sc-amber" onclick="goTo('cancellation')" style="cursor:pointer">
+      <div class="stat-stripe"></div>
+      <div class="stat-top"><div class="stat-lbl">Special Request Cancellation</div><div class="stat-icon"><i class="ti ti-receipt-refund"></i></div></div>
+      <div class="stat-val">3</div>
+      <div class="stat-foot"><span>Refunds pending</span></div>
+    </div>
     <div class="stat-card sc-green" onclick="goTo('express')" style="cursor:pointer">
       <div class="stat-stripe"></div>
       <div class="stat-top"><div class="stat-lbl">Express Items</div><div class="stat-icon"><i class="ti ti-bolt"></i></div></div>
@@ -2945,20 +3011,20 @@ PAGES.analytics = function(c) {
   });
 
   var perfRows = [
-    ['Bisleri Water 1L','Beverages','1,284','$2,568','↑ 22%',[3,5,4,8,7,9,8]],
-    ["Lay's Classic","Snacks",'986','$2,958','↑ 17%',[5,4,6,7,6,8,9]],
-    ['Tetley Green Tea','Beverages','742','$2,226','↑ 31%',[2,4,5,6,8,9,10]],
-    ['Dettol Antiseptic','Personal Care','621','$3,726','↑ 14%',[6,7,6,8,7,9,8]],
-    ['Amul Taaza Milk','Beverages','584','$2,920','↑ 8%',[7,8,7,8,8,9,8]],
+    ['Bisleri Water 1L','Beverages','1,284','$2,568',[3,5,4,8,7,9,8]],
+    ["Lay's Classic","Snacks",'986','$2,958',[5,4,6,7,6,8,9]],
+    ['Tetley Green Tea','Beverages','742','$2,226',[2,4,5,6,8,9,10]],
+    ['Dettol Antiseptic','Personal Care','621','$3,726',[6,7,6,8,7,9,8]],
+    ['Amul Taaza Milk','Beverages','584','$2,920',[7,8,7,8,8,9,8]],
   ];
   var tableRows = perfRows.map(function(row,i){
-    var spark = row[6].map(function(v){ return '<div class="spark-bar" style="height:'+(v*2.5)+'px;background:var(--teal-400);opacity:0.7"></div>'; }).join('');
-    return '<tr class="tr-click" onclick="goTo(\'express\')"><td class="td-m">'+(i+1)+'</td><td class="td-p">'+row[0]+'</td><td><span class="badge badge-navy">'+row[1]+'</span></td><td class="td-p">'+row[2]+'</td><td class="td-p w7">'+row[3]+'</td><td class="w7 csuccess">'+row[4]+'</td><td><div class="sparkline">'+spark+'</div></td></tr>';
+    var spark = row[4].map(function(v){ return '<div class="spark-bar" style="height:'+(v*2.5)+'px;background:var(--teal-400);opacity:0.7"></div>'; }).join('');
+    return '<tr class="tr-click" onclick="goTo(\'express\')"><td class="td-m">'+(i+1)+'</td><td><div class="flex aic g8">'+prodImg('sm')+'<span class="td-p">'+row[0]+'</span></div></td><td><span class="badge badge-navy">'+row[1]+'</span></td><td class="td-p">'+row[2]+'</td><td class="td-p w7">'+row[3]+'</td><td><div class="sparkline">'+spark+'</div></td></tr>';
   }).join('');
 
   document.getElementById('analytics-table').innerHTML =
     '<div class="card-hd"><div class="card-ttl"><i class="ti ti-bolt"></i>Express Item Performance</div><button class="btn btn-ghost btn-sm" onclick="exportData()"><i class="ti ti-download"></i>Export</button></div>' +
-    '<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Product</th><th>Category</th><th>Units Sold</th><th>Revenue</th><th>Growth</th><th>Trend</th></tr></thead><tbody>'+tableRows+'</tbody></table></div>';
+    '<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Product</th><th>Category</th><th>Units Sold</th><th>Revenue</th><th>Trend</th></tr></thead><tbody>'+tableRows+'</tbody></table></div>';
 };
 
 /* ─── SAILORS ─── */
@@ -2968,7 +3034,7 @@ PAGES.sailors = function(c) {
     <div class="pg-header-l"><h1 class="pg-title">Sailors Management</h1><p class="pg-sub"><span>2,847 registered</span><span class="sep">·</span><span>1,204 active this month</span></p></div>
     <div class="pg-actions">
       <div class="input-wrap"><i class="ti ti-search pre"></i><input type="text" class="form-input has-icon" placeholder="Search sailors…" style="width:220px"></div>
-      <select class="form-select"><option>All Status</option><option>Active</option><option>Inactive</option><option>New</option><option>Blocked</option></select>
+      <select class="form-select" id="sailor-status-filter"><option>All Status</option><option>Active</option><option>Inactive</option></select>
       <button class="btn btn-primary" onclick="modalAddSailor()"><i class="ti ti-user-plus"></i>Add Sailor</button>
     </div>
   </div>
@@ -2977,7 +3043,7 @@ PAGES.sailors = function(c) {
     <div class="stat-card sc-amber"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Loyalty Pts Issued</div><div class="stat-icon"><i class="ti ti-gift"></i></div></div><div class="stat-val">4.82M</div><div class="stat-foot"><span>≈ $48,200 value</span></div></div>
     <div class="stat-card sc-teal"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Referrals (Month)</div><div class="stat-icon"><i class="ti ti-share"></i></div></div><div class="stat-val">148</div><div class="stat-foot"><span>+500 pts each</span></div></div>
   </div>
-  <div class="tab-row"><div class="tab-item active" onclick="segClick(this)">All</div><div class="tab-item" onclick="segClick(this)">Active</div><div class="tab-item" onclick="segClick(this)">Inactive</div><div class="tab-item" onclick="segClick(this)">New Signups</div><div class="tab-item" onclick="segClick(this)">Blocked</div></div>
+  <div class="tab-row" id="sailor-tabs"><div class="tab-item active" data-st="All" onclick="segClick(this)">All</div><div class="tab-item" data-st="Active" onclick="segClick(this)">Active</div><div class="tab-item" data-st="Inactive" onclick="segClick(this)">Inactive</div></div>
   <div class="card" id="sailors-table"></div>`;
 
   var sailors = [
@@ -2985,38 +3051,50 @@ PAGES.sailors = function(c) {
     {n:'Ali Mahmoud',e:'ali.m@vessel.com',w:'+971 50 444 1234',j:'Jan 8, 2026',sh:'MSC Marvela',o:12,p:1820,ca:2,wi:5,st:'Active',sc:'success'},
     {n:'Sara Chen',e:'sara.c@marine.io',w:'+65 9123 4567',j:'Feb 22, 2026',sh:'APL Vanda',o:7,p:920,ca:0,wi:2,st:'Active',sc:'success'},
     {n:'James Wren',e:'jwren@shipco.net',w:'+44 7900 112233',j:'Dec 3, 2025',sh:'Evergreen Faith',o:31,p:5100,ca:0,wi:8,st:'Active',sc:'success'},
-    {n:'Ravi Patel',e:'ravi.p@anchormail.com',w:'+91 98765 43210',j:'Apr 1, 2026',sh:'IMO 0123456',o:2,p:200,ca:6,wi:1,st:'New',sc:'info'},
+    {n:'Ravi Patel',e:'ravi.p@anchormail.com',w:'+91 98765 43210',j:'Apr 1, 2026',sh:'IMO 0123456',o:2,p:200,ca:6,wi:1,st:'Active',sc:'success'},
     {n:'Maria Santos',e:'msantos@seafarer.ph',w:'+63 912 345 6789',j:'Nov 14, 2025',sh:'MSC Marvela',o:0,p:0,ca:0,wi:0,st:'Inactive',sc:'neutral'},
   ];
 
-  var tableHtml = '<div class="tbl-wrap"><table><thead><tr><th>Sailor</th><th>Contact</th><th>Joined</th><th>Ship</th><th>Orders</th><th>Loyalty Pts</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
-  sailors.forEach(function(s) {
-    tableHtml += '<tr class="tr-click">' +
-      '<td><div class="flex aic g10"><div class="av av-navy">'+s.n[0]+'</div><div><div class="td-p">'+s.n+'</div><div class="td-m">'+s.e+'</div></div></div></td>' +
-      '<td class="td-m">'+s.w+'</td><td class="td-m">'+s.j+'</td><td class="td-m">'+s.sh+'</td>' +
+  function sailorRow(s) {
+    return '<tr class="tr-click">' +
+      '<td><div class="td-p">'+s.n+'</div><div class="td-m">'+s.e+'</div></td>' +
+      '<td class="td-m">'+s.w+'</td><td class="td-m">'+s.j+'</td>' +
       '<td class="td-p w7">'+s.o+'</td>' +
       '<td><span class="camber w7">'+s.p.toLocaleString()+'</span><span class="td-m"> pts</span></td>' +
       '<td><span class="badge badge-'+s.sc+'">'+s.st+'</span></td>' +
       '<td><div class="td-acts">' +
         '<button class="btn btn-ghost btn-sm btn-icon" title="View"><i class="ti ti-eye"></i></button>' +
         '<button class="btn btn-ghost btn-sm btn-icon" title="Edit"><i class="ti ti-edit"></i></button>' +
-        '<button class="btn btn-danger btn-sm btn-icon" title="Block"><i class="ti ti-ban"></i></button>' +
       '</div></td></tr>';
-  });
-  tableHtml += '</tbody></table></div><div class="pagination"><span class="sm c4 w6" style="margin-right:auto">Showing 6 of 2,847</span><div class="pg-btn"><i class="ti ti-chevron-left" style="font-size:14px"></i></div><div class="pg-btn active">1</div><div class="pg-btn">2</div><div class="pg-btn">3</div><div class="pg-btn"><i class="ti ti-chevron-right" style="font-size:14px"></i></div></div>';
+  }
 
-  document.getElementById('sailors-table').innerHTML = tableHtml;
+  var sailorStatus = 'All', sailorQuery = '';
+  function renderSailors() {
+    var list = sailors.filter(function(s) {
+      var okS = sailorStatus === 'All' || s.st === sailorStatus;
+      var okQ = !sailorQuery || (s.n + ' ' + s.e + ' ' + s.w).toLowerCase().indexOf(sailorQuery) >= 0;
+      return okS && okQ;
+    });
+    var html = '<div class="tbl-wrap"><table><thead><tr><th>Sailor</th><th>Contact</th><th>Joined</th><th>Orders</th><th>Loyalty Pts</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+    html += list.length ? list.map(sailorRow).join('') : '<tr><td colspan="7" class="td-m" style="text-align:center;padding:28px">No sailors match this filter.</td></tr>';
+    html += '</tbody></table></div><div class="pagination"><span class="sm c4 w6" style="margin-right:auto">Showing '+list.length+' of 2,847</span><div class="pg-btn"><i class="ti ti-chevron-left" style="font-size:14px"></i></div><div class="pg-btn active">1</div><div class="pg-btn">2</div><div class="pg-btn">3</div><div class="pg-btn"><i class="ti ti-chevron-right" style="font-size:14px"></i></div></div>';
+    document.getElementById('sailors-table').innerHTML = html;
+    document.getElementById('sailors-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
+      var s = list[i]; if (!s) return;
+      tr.onclick = function() { drawerProfile(s.n, 'sailor'); };
+      var btns = tr.querySelectorAll('button');
+      btns[0].onclick = function(e) { e.stopPropagation(); drawerProfile(s.n, 'sailor'); };
+      btns[1].onclick = function(e) { e.stopPropagation(); modalAddSailor({name:s.n, email:s.e, wa:s.w}); };
+    });
+  }
+  renderSailors();
 
-  /* Wire row events using JS (no inline onclick strings) */
-  var rows = document.getElementById('sailors-table').querySelectorAll('tbody tr');
-  rows.forEach(function(tr, i) {
-    var s = sailors[i];
-    tr.onclick = function() { drawerProfile(s.n, 'sailor'); };
-    var btns = tr.querySelectorAll('button');
-    btns[0].onclick = function(e) { e.stopPropagation(); drawerProfile(s.n, 'sailor'); };
-    btns[1].onclick = function(e) { e.stopPropagation(); modalAddSailor({name:s.n, email:s.e, wa:s.w}); };
-    btns[2].onclick = function(e) { e.stopPropagation(); toast('WhatsApp opened for ' + s.n, '', 'message'); };
-    btns[3].onclick = function(e) { e.stopPropagation(); showConfirm({title:'Block Sailor', msg:'Block ' + s.n + '? They will lose app access.', danger:true, confirmText:'Block'}, function(){ toast(s.n + ' blocked', 'danger', 'ban'); }); };
+  var sf = document.getElementById('sailor-status-filter');
+  if (sf) sf.onchange = function() { sailorStatus = this.value === 'All Status' ? 'All' : this.value; renderSailors(); };
+  var ssearch = c.querySelector('.pg-actions .input-wrap input');
+  if (ssearch) ssearch.oninput = function() { sailorQuery = this.value.toLowerCase().trim(); renderSailors(); };
+  c.querySelectorAll('#sailor-tabs .tab-item').forEach(function(tab) {
+    tab.addEventListener('click', function() { sailorStatus = tab.getAttribute('data-st'); var sf2 = document.getElementById('sailor-status-filter'); if (sf2) sf2.value = sailorStatus === 'All' ? 'All Status' : sailorStatus; renderSailors(); });
   });
 };
 
@@ -3027,40 +3105,53 @@ PAGES.orders = function(c) {
     <div class="pg-header-l"><h1 class="pg-title">Orders Management</h1><p class="pg-sub"><span>184 orders today</span><span class="sep">·</span><span>Full lifecycle visibility</span></p></div>
     <div class="pg-actions">
       <div class="input-wrap"><i class="ti ti-search pre"></i><input type="text" class="form-input has-icon" placeholder="Search orders…" style="width:240px"></div>
-      <select class="form-select"><option>All Status</option><option>New</option><option>Verifying</option><option>In Progress</option><option>Delivered</option><option>Cancelled</option></select>
-      <button class="btn btn-secondary btn-sm"><i class="ti ti-calendar"></i>Date Range</button>
+      <select class="form-select"><option>All Status</option><option>New</option><option>Verifying</option><option>Awaiting Payment</option><option>In Progress</option><option>Delivered</option><option>Cancelled</option></select>
+      <button class="btn btn-secondary btn-sm" onclick="openDateRange()"><i class="ti ti-calendar"></i>Date Range</button>
       <button class="btn btn-primary btn-sm" onclick="exportData()"><i class="ti ti-download"></i>Export</button>
     </div>
   </div>
   <div class="filter-row">
-    <div class="fchip active" onclick="segClick(this)">All (184)</div>
-    <div class="fchip" onclick="segClick(this)">New (12)</div>
-    <div class="fchip" onclick="segClick(this)">Verifying (8)</div>
-    <div class="fchip" onclick="segClick(this)">Awaiting Payment (12)</div>
-    <div class="fchip" onclick="segClick(this)">In Progress (47)</div>
-    <div class="fchip" onclick="segClick(this)">Delivered (129)</div>
-    <div class="fchip" onclick="segClick(this)">Cancelled (6)</div>
+    <div class="fchip active" data-st="All" onclick="segClick(this)">All (184)</div>
+    <div class="fchip" data-st="New" onclick="segClick(this)">New (12)</div>
+    <div class="fchip" data-st="Verifying" onclick="segClick(this)">Verifying (8)</div>
+    <div class="fchip" data-st="Awaiting Payment" onclick="segClick(this)">Awaiting Payment (12)</div>
+    <div class="fchip" data-st="In Progress" onclick="segClick(this)">In Progress (47)</div>
+    <div class="fchip" data-st="Delivered" onclick="segClick(this)">Delivered (129)</div>
+    <div class="fchip" data-st="Cancelled" onclick="segClick(this)">Cancelled (6)</div>
   </div>
   <div class="card" id="orders-table"></div>`;
 
   var orders = [
-    {id:'#AM2458',s:'Lois Becket',it:'Titan Watch, Card Holder',sh:'0123456 · Anch.2',pt:'Rahul Singh',pay:'Card ✓',cp:'SHIP10',t:'$84.00',st:'In Progress',sc:'warning'},
-    {id:'#AM2461',s:'Ali Mahmoud',it:'Nu Republic ×2, Protein Bar',sh:'MSC Marvela · B7',pt:'Rahul Singh',pay:'Card ✓',cp:'—',t:'$70.45',st:'Verifying',sc:'info'},
-    {id:'#AM2463',s:'James Wren',it:'Coffee, Tablets, Side table',sh:'Evergreen · Brani',pt:'Pita Havili',pay:'Card ✓',cp:'FREESHIP',t:'$48.00',st:'In Progress',sc:'warning'},
-    {id:'#AM2465',s:'Sara Chen',it:'Echo Dot 5th Gen, Echo Buds',sh:'APL Vanda · PSA',pt:'Marco Reyes',pay:'Card ✓',cp:'—',t:'$94.99',st:'Delivered',sc:'success'},
-    {id:'#AM2467',s:'Ravi Patel',it:'Express items ×6',sh:'IMO 0123456',pt:'Unassigned',pay:'Pending',cp:'—',t:'$32.00',st:'New',sc:'neutral'},
-    {id:'#AM2451',s:'Maria Santos',it:'KILLER Running Shoes',sh:'MSC Marvela',pt:'—',pay:'Refund',cp:'—',t:'$67.00',st:'Cancelled',sc:'danger'},
+    {id:'#AM2458',s:'Lois Becket',src:'Mobile App',it:'Titan Watch, Card Holder',sh:'0123456 · Anch.2',imo:'IMO 0123456',term:'Anchorage 2',intent:'#INT-0047',chFrom:'Anchorage 1',chTo:'Anchorage 2',ecost:'$4.50',paid:false,pt:'Rahul Singh',pay:'Card ✓',cp:'SHIP10',t:'$84.00',st:'In Progress',sc:'warning',items:[{name:'Titan Quartz Watch',qty:1,price:'$75.00'},{name:'Leather Card Holder',qty:1,price:'$9.00'}]},
+    {id:'#AM2461',s:'Ali Mahmoud',src:'Website',it:'Nu Republic ×2, Protein Bar',sh:'MSC Marvela · B7',imo:'MSC Marvela',term:'Berth 7',intent:'#INT-0048',pt:'Rahul Singh',pay:'Card ✓',cp:'—',t:'$70.45',st:'Verifying',sc:'info',items:[{name:'Nu Republic Power Bank',qty:2,price:'$24.00'},{name:'Protein Bar Variety Pack',qty:1,price:'$22.45'}]},
+    {id:'#AM2463',s:'James Wren',src:'Mobile App',it:'Coffee, Tablets, Side table',sh:'Evergreen · Brani',imo:'Evergreen Ace',term:'Brani Terminal',intent:'#INT-0049',pt:'Pita Havili',pay:'Card ✓',cp:'FREESHIP',t:'$48.00',st:'In Progress',sc:'warning',items:[{name:'Lavazza Coffee',qty:1,price:'$11.30'},{name:'Paracetamol Tablets',qty:2,price:'$24.00'},{name:'Folding Side Table',qty:1,price:'$12.70'}]},
+    {id:'#AM2465',s:'Sara Chen',src:'Website',it:'Echo Dot 5th Gen, Echo Buds',sh:'APL Vanda · PSA',imo:'APL Vanda',term:'PSA Terminal',intent:'#INT-0050',chFrom:'Berth PSA',chTo:'Berth 14',ecost:'$6.00',paid:true,pt:'Marco Reyes',pay:'Card ✓',cp:'—',t:'$94.99',st:'Delivered',sc:'success',delivered:true,items:[{name:'Echo Dot 5th Gen',qty:1,price:'$39.99'},{name:'Echo Buds',qty:1,price:'$55.00'}]},
+    {id:'#AM2466',s:'Lois Becket',src:'Mobile App',it:'Sennheiser HD 450BT',sh:'MSC Marvela · B7',imo:'MSC Marvela',term:'Berth 7',intent:'#INT-0051',pt:'Unassigned',pay:'Pending',cp:'—',t:'$120.00',st:'Awaiting Payment',sc:'warning',items:[{name:'Sennheiser HD 450BT',qty:1,price:'$120.00'}]},
+    {id:'#AM2467',s:'Ravi Patel',src:'Mobile App',it:'Express items ×6',sh:'IMO 0123456',imo:'IMO 0123456',term:'PSA',intent:'#INT-0052',pt:'Unassigned',pay:'Pending',cp:'—',t:'$32.00',st:'New',sc:'neutral',items:[{name:'Bisleri Water 1L',qty:3,price:'$6.00'},{name:"Lay's Classic",qty:3,price:'$9.00'},{name:'Amul Milk 500ml',qty:6,price:'$17.00'}]},
+    {id:'#AM2451',s:'Maria Santos',src:'Website',it:'KILLER Running Shoes',sh:'MSC Marvela',imo:'MSC Marvela',term:'—',intent:'#INT-0045',pt:'—',pay:'Refund',cp:'—',t:'$67.00',st:'Cancelled',sc:'danger',items:[{name:'KILLER Running Shoes',qty:1,price:'$67.00'}]},
   ];
 
-  var tbody = '<div class="tbl-wrap"><table><thead><tr><th>Order ID</th><th>Sailor</th><th>Items</th><th>Ship / Terminal</th><th>Partner</th><th>Payment</th><th>Coupon</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
-  orders.forEach(function(o) {
+  function anchorageCell(o) {
+    if (!o.chTo) return '<td class="td-m" style="text-align:center">—</td>';
+    return '<td><div class="flex" style="flex-direction:column;gap:4px;align-items:flex-start">' +
+        '<span class="td-m" style="font-size:11px"><span class="c4">'+o.chFrom+'</span> <i class="ti ti-arrow-right cteal"></i> <span class="td-p">'+o.chTo+'</span></span>' +
+        '<span class="badge badge-warning" style="font-size:10px">+'+o.ecost+' shipping</span>' +
+        (o.paid
+          ? '<span class="badge badge-success" style="font-size:10px"><i class="ti ti-check"></i> Balance Paid</span>'
+          : '<span class="badge badge-warning" style="font-size:10px"><i class="ti ti-clock"></i> Balance due</span>') +
+      '</div></td>';
+  }
+  function orderRow(o) {
     var pc = o.pt === 'Unassigned' ? 'var(--danger-text)' : 'var(--t3)';
     var payc = o.pay.includes('✓') ? 'var(--success-text)' : o.pay === 'Pending' ? 'var(--warning-text)' : 'var(--danger-text)';
-    tbody += '<tr class="tr-click">' +
+    var mobile = o.src === 'Mobile App';
+    return '<tr class="tr-click">' +
       '<td class="td-id">'+o.id+'</td>' +
-      '<td><div class="flex aic g8"><div class="av av-sm av-navy">'+o.s[0]+'</div><span class="td-p">'+o.s+'</span></div></td>' +
+      '<td><span class="badge badge-'+(mobile?'teal':'navy')+'" style="font-size:10.5px"><i class="ti '+(mobile?'ti-device-mobile':'ti-world')+'"></i> '+o.src+'</span></td>' +
+      '<td><span class="td-p">'+o.s+'</span></td>' +
       '<td><span class="sm c3 w5 trunc" style="max-width:170px;display:block">'+o.it+'</span></td>' +
       '<td class="td-m">'+o.sh+'</td>' +
+      anchorageCell(o) +
       '<td style="color:'+pc+';font-size:12.5px;font-weight:600">'+o.pt+'</td>' +
       '<td style="color:'+payc+';font-size:12.5px;font-weight:700">'+o.pay+'</td>' +
       '<td class="td-m">'+o.cp+'</td>' +
@@ -3071,20 +3162,41 @@ PAGES.orders = function(c) {
         '<button class="btn btn-ghost btn-sm btn-icon" data-action="msg" title="Message"><i class="ti ti-message"></i></button>' +
         '<button class="btn btn-danger btn-sm btn-icon" data-action="cancel" title="Cancel"><i class="ti ti-x"></i></button>' +
       '</div></td></tr>';
-  });
-  tbody += '</tbody></table></div><div class="pagination"><span class="sm c4 w6" style="margin-right:auto">Showing 6 of 184</span><div class="pg-btn"><i class="ti ti-chevron-left" style="font-size:14px"></i></div><div class="pg-btn active">1</div><div class="pg-btn">2</div><div class="pg-btn">3</div><div class="pg-btn"><i class="ti ti-chevron-right" style="font-size:14px"></i></div></div>';
+  }
 
-  document.getElementById('orders-table').innerHTML = tbody;
+  var orderStatus = 'All', orderQuery = '';
+  function renderOrders() {
+    var list = orders.filter(function(o) {
+      var okS = orderStatus === 'All' || o.st === orderStatus;
+      var okQ = !orderQuery || (o.id + ' ' + o.s + ' ' + o.it).toLowerCase().indexOf(orderQuery) >= 0;
+      return okS && okQ;
+    });
+    var html = '<div class="tbl-wrap"><table><thead><tr><th>Order ID</th><th>Source</th><th>Sailor</th><th>Items</th><th>Ship / Terminal</th><th>Changed Anchorage</th><th>Partner</th><th>Payment</th><th>Coupon</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+    html += list.length ? list.map(orderRow).join('') : '<tr><td colspan="12" class="td-m" style="text-align:center;padding:28px">No orders match this filter.</td></tr>';
+    html += '</tbody></table></div><div class="pagination"><span class="sm c4 w6" style="margin-right:auto">Showing '+list.length+' of 184</span><div class="pg-btn"><i class="ti ti-chevron-left" style="font-size:14px"></i></div><div class="pg-btn active">1</div><div class="pg-btn">2</div><div class="pg-btn">3</div><div class="pg-btn"><i class="ti ti-chevron-right" style="font-size:14px"></i></div></div>';
+    document.getElementById('orders-table').innerHTML = html;
+    document.getElementById('orders-table').querySelectorAll('tbody tr').forEach(function(tr, idx) {
+      var o = list[idx]; if (!o) return;
+      var orderData = {id:o.id,sailor:o.s,source:o.src,ship:o.imo||o.sh,terminal:o.term||o.chTo||'—',partner:o.pt,payment:o.pay.includes('✓')?'Card · Paid':o.pay,coupon:o.cp,total:o.t,status:o.st,sc:o.sc,delivered:o.st==='Delivered',intent:o.intent,chFrom:o.chFrom,chTo:o.chTo,ecost:o.ecost,paid:o.paid,items:o.items};
+      tr.onclick = function() { drawerOrderDetail(orderData); };
+      tr.querySelector('[data-action="view"]').onclick   = function(e){ e.stopPropagation(); drawerOrderDetail(orderData); };
+      tr.querySelector('[data-action="msg"]').onclick    = function(e){ e.stopPropagation(); toast('Message sent to ' + o.s, 'success', 'message'); };
+      tr.querySelector('[data-action="cancel"]').onclick = function(e){ e.stopPropagation(); showConfirm({title:'Cancel Order', msg:'Cancel '+o.id+'? A refund will be processed.', danger:true, confirmText:'Cancel Order'}, function(){ toast('Order '+o.id+' cancelled', 'danger', 'x'); }); };
+      var pl = tr.querySelector('[data-action="paylink"]'); if (pl) pl.onclick = function(e){ e.stopPropagation(); toast('Payment link for ' + o.ecost + ' sent to ' + o.s, 'success', 'send'); };
+    });
+  }
+  renderOrders();
 
-  /* Wire events */
-  var trs = document.getElementById('orders-table').querySelectorAll('tbody tr');
-  trs.forEach(function(tr, i) {
-    var o = orders[i];
-    var orderData = {id:o.id,sailor:o.s,ship:'0123456',terminal:'Anchorage 2',partner:o.pt,payment:o.pay.includes('✓')?'Card · Paid':'Pending',coupon:o.cp,total:o.t,status:o.st,items:[{name:'Titan Watch',qty:1,price:'$75.00'},{name:'Card Holder',qty:1,price:'$12.00'}]};
-    tr.onclick = function() { drawerOrderDetail(orderData); };
-    tr.querySelector('[data-action="view"]').onclick    = function(e){ e.stopPropagation(); drawerOrderDetail(orderData); };
-    tr.querySelector('[data-action="msg"]').onclick     = function(e){ e.stopPropagation(); toast('Message sent to ' + o.s, 'success', 'message'); };
-    tr.querySelector('[data-action="cancel"]').onclick  = function(e){ e.stopPropagation(); showConfirm({title:'Cancel Order', msg:'Cancel '+o.id+'? A refund will be processed.', danger:true, confirmText:'Cancel Order'}, function(){ toast('Order '+o.id+' cancelled', 'danger', 'x'); }); };
+  function syncOrderUI() {
+    c.querySelectorAll('.filter-row .fchip').forEach(function(ch){ ch.classList.toggle('active', ch.getAttribute('data-st') === orderStatus); });
+    var s = c.querySelector('.pg-actions .form-select'); if (s) s.value = orderStatus === 'All' ? 'All Status' : orderStatus;
+  }
+  var osf = c.querySelector('.pg-actions .form-select');
+  if (osf) osf.onchange = function() { orderStatus = this.value === 'All Status' ? 'All' : this.value; syncOrderUI(); renderOrders(); };
+  var osearch = c.querySelector('.pg-actions .input-wrap input');
+  if (osearch) osearch.oninput = function() { orderQuery = this.value.toLowerCase().trim(); renderOrders(); };
+  c.querySelectorAll('.filter-row .fchip').forEach(function(ch) {
+    ch.addEventListener('click', function() { orderStatus = ch.getAttribute('data-st'); syncOrderUI(); renderOrders(); });
   });
 };
 
@@ -3114,44 +3226,41 @@ PAGES.intents = function(c) {
     {r:'#INT-0051',s:'Ravi Patel',it:'Shaving Kit, Water Bottle ×2 (3)',sh:'IMO 0123456',ar:'25 Apr',sy:'3 days',cm:'WhatsApp',sb:'22 Apr 08:15',st:'New',sc:'neutral'},
   ];
 
-  var rows = intents.map(function(i){
-    var csc = i.cm === 'WhatsApp' ? 'success' : 'info';
-    var chgCell;
-    if (i.chTo) {
-      chgCell = '<td><div class="flex" style="flex-direction:column;gap:4px;align-items:flex-start">' +
-          '<span class="td-m" style="font-size:11px"><span class="c4">'+i.chFrom+'</span> <i class="ti ti-arrow-right cteal"></i> <span class="td-p">'+i.chTo+'</span></span>' +
-          '<span class="badge badge-warning" style="font-size:10px">+'+i.ecost+' shipping</span>' +
-          (i.paid
-            ? '<span class="badge badge-success" style="font-size:10px"><i class="ti ti-check"></i> Balance Paid</span>'
-            : '<button class="btn btn-primary btn-xs" data-action="paylink">Send Payment Link</button>') +
-        '</div></td>';
-    } else {
-      chgCell = '<td class="td-m" style="text-align:center">—</td>';
-    }
+  function intentRow(i) {
     return '<tr class="tr-click">' +
       '<td class="td-id xs">'+i.r+'</td>' +
-      '<td><div class="flex aic g8"><div class="av av-sm av-teal">'+i.s[0]+'</div><span class="td-p">'+i.s+'</span></div></td>' +
+      '<td><span class="td-p">'+i.s+'</span></td>' +
       '<td class="td-m" style="max-width:190px"><span class="trunc" style="display:block">'+i.it+'</span></td>' +
       '<td class="td-m">'+i.sh+'</td>' +
-      chgCell +
       '<td class="td-m">'+i.ar+'</td><td class="td-m">'+i.sy+'</td>' +
-      '<td><span class="badge badge-'+csc+'" style="font-size:10.5px">'+i.cm+'</span></td>' +
       '<td class="td-m">'+i.sb+'</td>' +
       '<td><span class="badge badge-'+i.sc+'">'+i.st+'</span></td>' +
       '<td><div class="td-acts"><button class="btn btn-primary btn-xs" data-action="review">Review</button></div></td>' +
     '</tr>';
-  }).join('');
+  }
 
-  document.getElementById('intents-table').innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th>Reference</th><th>Sailor</th><th>Items Requested</th><th>Ship</th><th>Changed Anchorage</th><th>Arrival</th><th>Stay</th><th>Comm.</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
-
-  document.getElementById('intents-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
-    var intent = intents[i];
-    tr.onclick = function() { modalReviewIntent(intent); };
-    tr.querySelector('[data-action="review"]').onclick = function(e){ e.stopPropagation(); modalReviewIntent(intent); };
-    var payBtn = tr.querySelector('[data-action="paylink"]');
-    if (payBtn) payBtn.onclick = function(e){ e.stopPropagation(); toast('Payment link for ' + intent.ecost + ' sent to ' + intent.s, 'success', 'send'); };
-  });
+  var intentStatus = 'All', intentQuery = '';
+  function renderIntents() {
+    var list = intents.filter(function(i) {
+      var okS = intentStatus === 'All' || i.st === intentStatus;
+      var okQ = !intentQuery || (i.r + ' ' + i.s + ' ' + i.it).toLowerCase().indexOf(intentQuery) >= 0;
+      return okS && okQ;
+    });
+    document.getElementById('intents-table').innerHTML =
+      '<div class="tbl-wrap"><table><thead><tr><th>Intent</th><th>Sailor</th><th>Items Requested</th><th>Ship</th><th>Arrival</th><th>Stay</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead><tbody>' +
+      (list.length ? list.map(intentRow).join('') : '<tr><td colspan="9" class="td-m" style="text-align:center;padding:28px">No intents match this filter.</td></tr>') +
+      '</tbody></table></div>';
+    document.getElementById('intents-table').querySelectorAll('tbody tr').forEach(function(tr, idx) {
+      var intent = list[idx]; if (!intent) return;
+      tr.onclick = function() { modalReviewIntent(intent); };
+      var rv = tr.querySelector('[data-action="review"]'); if (rv) rv.onclick = function(e){ e.stopPropagation(); modalReviewIntent(intent); };
+    });
+  }
+  renderIntents();
+  var isf = c.querySelector('.pg-actions .form-select');
+  if (isf) isf.onchange = function() { intentStatus = this.value === 'All Status' ? 'All' : this.value; renderIntents(); };
+  var isearch = c.querySelector('.pg-actions .input-wrap input');
+  if (isearch) isearch.oninput = function() { intentQuery = this.value.toLowerCase().trim(); renderIntents(); };
 };
 
 /* ─── SPECIAL REQUEST ITEMS ─── */
@@ -3161,48 +3270,61 @@ PAGES.requests = function(c) {
     <div class="pg-header-l"><h1 class="pg-title">Special Request Items</h1><p class="pg-sub"><span>Custom item requests submitted by sailors from the app</span></p></div>
     <div class="pg-actions">
       <div class="input-wrap"><i class="ti ti-search pre"></i><input type="text" class="form-input has-icon" placeholder="Search requests…" style="width:200px"></div>
-      <select class="form-select"><option>All Status</option><option>Pending</option><option>Approved</option><option>Sourcing</option><option>Rejected</option></select>
+      <select class="form-select"><option>All Status</option><option>Pending</option><option>Approved</option><option>Rejected</option></select>
       <button class="btn btn-secondary" onclick="exportData('CSV')"><i class="ti ti-download"></i>Export</button>
     </div>
   </div>
   <div class="stats-row">
     <div class="stat-card sc-navy"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Total Requests</div><div class="stat-icon"><i class="ti ti-clipboard-text"></i></div></div><div class="stat-val">28</div><div class="stat-foot"><span>This month</span></div></div>
     <div class="stat-card sc-amber"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Pending Review</div><div class="stat-icon"><i class="ti ti-clock"></i></div></div><div class="stat-val">5</div><div class="stat-foot"><span>Awaiting action</span></div></div>
-    <div class="stat-card sc-blue"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Sourcing</div><div class="stat-icon"><i class="ti ti-truck-loading"></i></div></div><div class="stat-val">6</div><div class="stat-foot"><span>Being procured</span></div></div>
     <div class="stat-card sc-green"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Approved</div><div class="stat-icon"><i class="ti ti-check"></i></div></div><div class="stat-val">14</div><div class="stat-foot"><span>Added to catalog</span></div></div>
   </div>
   <div class="card" id="requests-table"></div>`;
 
   var requests = [
     {r:'#SRQ-0091',n:'Lois Becket',e:'lois.becket@maersk.com',ph:'+65 8123 4471',prod:'Sennheiser HD 450BT Headphones',brand:'Sennheiser',qty:1,desc:'Wireless noise-cancelling headphones, black colour preferred. Needed before next sailing.',ship:'MSC Marvela · Berth 7',dt:'02 Jun 2026 · 09:14',img:true,st:'Pending',sc:'warning'},
-    {r:'#SRQ-0090',n:'Ali Mahmoud',e:'ali.mahmoud@apl.com',ph:'+65 9034 1182',prod:'Omega-3 Fish Oil Capsules',brand:'Nordic Naturals',qty:3,desc:'1000mg softgels, 120 count bottles. Required for crew health supplies.',ship:'APL Vanda · PSA',dt:'01 Jun 2026 · 17:42',img:false,st:'Sourcing',sc:'info'},
+    {r:'#SRQ-0090',n:'Ali Mahmoud',e:'ali.mahmoud@apl.com',ph:'+65 9034 1182',prod:'Omega-3 Fish Oil Capsules',brand:'Nordic Naturals',qty:3,desc:'1000mg softgels, 120 count bottles. Required for crew health supplies.',ship:'APL Vanda · PSA',dt:'01 Jun 2026 · 17:42',img:false,st:'Approved',sc:'success'},
     {r:'#SRQ-0089',n:'James Wren',e:'j.wren@evergreen-line.com',ph:'+65 8890 2245',prod:'Casio G-Shock GA-2100 Watch',brand:'Casio',qty:1,desc:'Carbon core guard, black resin band. Gift for end of contract.',ship:'Evergreen Ace · Brani',dt:'01 Jun 2026 · 11:08',img:true,st:'Approved',sc:'success'},
     {r:'#SRQ-0088',n:'Sara Chen',e:'sara.chen@oocl.com',ph:'+65 9112 7763',prod:'Korean Skincare Set (COSRX)',brand:'COSRX',qty:2,desc:'Snail mucin essence + acne patches. Any variant acceptable.',ship:'OOCL Tokyo · Anch. 2',dt:'31 May 2026 · 20:31',img:false,st:'Pending',sc:'warning'},
     {r:'#SRQ-0087',n:'Ravi Patel',e:'ravi.patel@anglo-eastern.com',ph:'+65 8456 9920',prod:'Bose SoundLink Flex Speaker',brand:'Bose',qty:1,desc:'Portable bluetooth speaker, waterproof. Blue or black.',ship:'IMO 0123456 · PSA',dt:'31 May 2026 · 08:55',img:false,st:'Rejected',sc:'danger'},
   ];
 
-  var rows = requests.map(function(i){
+  function requestRow(i) {
     return '<tr class="tr-click">' +
       '<td class="td-id xs">'+i.r+'</td>' +
-      '<td><div class="flex aic g8"><div class="av av-sm av-teal">'+i.n[0]+'</div><div><div class="td-p">'+i.n+'</div><div class="xs c4">'+i.e+'</div></div></div></td>' +
+      '<td><div class="td-p">'+i.n+'</div><div class="xs c4">'+i.e+'</div></td>' +
       '<td class="td-m">'+i.ph+'</td>' +
-      '<td class="td-m" style="max-width:200px"><span class="trunc" style="display:block">'+i.prod+'</span></td>' +
+      '<td><div class="flex aic g8">'+prodImg('sm')+'<span class="td-m trunc" style="max-width:180px;display:block">'+i.prod+'</span></div></td>' +
       '<td class="td-m">'+i.brand+'</td>' +
       '<td class="td-m" style="text-align:center">'+i.qty+'</td>' +
       '<td class="td-m">'+i.dt+'</td>' +
       '<td><span class="badge badge-'+i.sc+'">'+i.st+'</span></td>' +
-      '<td><div class="td-acts"><button class="btn btn-ghost btn-sm btn-icon" data-action="view"><i class="ti ti-eye"></i></button></div></td>' +
+      '<td><div class="td-acts"><button class="btn btn-ghost btn-sm btn-icon" data-action="view" title="View"><i class="ti ti-eye"></i></button></div></td>' +
     '</tr>';
-  }).join('');
+  }
 
-  document.getElementById('requests-table').innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th>Reference</th><th>Sailor</th><th>Phone</th><th>Product</th><th>Brand</th><th>Qty</th><th>Requested</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
-
-  document.getElementById('requests-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
-    var req = requests[i];
-    tr.onclick = function() { viewSpecialRequest(req); };
-    tr.querySelector('[data-action="view"]').onclick = function(e){ e.stopPropagation(); viewSpecialRequest(req); };
-  });
+  var reqStatus = 'All', reqQuery = '';
+  function renderRequests() {
+    var list = requests.filter(function(i) {
+      var okS = reqStatus === 'All' || i.st === reqStatus;
+      var okQ = !reqQuery || (i.r + ' ' + i.n + ' ' + i.prod + ' ' + i.brand).toLowerCase().indexOf(reqQuery) >= 0;
+      return okS && okQ;
+    });
+    document.getElementById('requests-table').innerHTML =
+      '<div class="tbl-wrap"><table><thead><tr><th>Order ID</th><th>Sailor</th><th>Phone</th><th>Product</th><th>Brand</th><th>Qty</th><th>Requested</th><th>Status</th><th>Actions</th></tr></thead><tbody>' +
+      (list.length ? list.map(requestRow).join('') : '<tr><td colspan="9" class="td-m" style="text-align:center;padding:28px">No requests match this filter.</td></tr>') +
+      '</tbody></table></div>';
+    document.getElementById('requests-table').querySelectorAll('tbody tr').forEach(function(tr, idx) {
+      var req = list[idx]; if (!req) return;
+      tr.onclick = function() { viewSpecialRequest(req); };
+      var v = tr.querySelector('[data-action="view"]'); if (v) v.onclick = function(e){ e.stopPropagation(); viewSpecialRequest(req); };
+    });
+  }
+  renderRequests();
+  var rqf = c.querySelector('.pg-actions .form-select');
+  if (rqf) rqf.onchange = function() { reqStatus = this.value === 'All Status' ? 'All' : this.value; renderRequests(); };
+  var rqsearch = c.querySelector('.pg-actions .input-wrap input');
+  if (rqsearch) rqsearch.oninput = function() { reqQuery = this.value.toLowerCase().trim(); renderRequests(); };
 };
 
 /* ── SPECIAL REQUEST DETAIL MODAL ── */
@@ -3220,7 +3342,6 @@ function viewSpecialRequest(req) {
       <div class="sec-label">Requested By</div>
       <div style="background:var(--navy-25);border-radius:var(--radius-md);padding:16px;margin-bottom:20px">
         <div class="flex aic g12 mb14">
-          <div class="av av-teal">${(req.n||'?')[0]}</div>
           <div class="f1"><div class="w7 c1" style="font-size:15px">${req.n||'—'}</div><div class="xs c4">Sailor</div></div>
           <span class="badge badge-${req.sc||'neutral'}">${req.st||'Pending'}</span>
         </div>
@@ -3242,14 +3363,80 @@ function viewSpecialRequest(req) {
       </div>
       <div class="fg"><label class="fg-label">Description</label><div class="ecard" style="line-height:1.5">${req.desc||'No description provided.'}</div></div>
       <div class="fg"><label class="fg-label">Uploaded Image</label>${imgHtml}</div>
+      <div class="sec-label mt16">Ship &amp; Delivery Information</div>
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">Ship Information</label><input class="form-input" value="${(req.ship||'').split(' · ')[0]}" placeholder="Vessel name"></div>
+        <div class="fg"><label class="fg-label">IMO Number</label><input class="form-input mono" placeholder="IMO 0000000" value="0123456"></div>
+      </div>
+      <div class="form-row triple">
+        <div class="fg"><label class="fg-label">Stroke Terminal</label><input class="form-input" placeholder="e.g. Berth 7" value="${(req.ship||'').split(' · ')[1]||''}"></div>
+        <div class="fg"><label class="fg-label">Expected Arrival Date</label><input class="form-input" type="date"></div>
+        <div class="fg"><label class="fg-label">Expected Arrival Time</label><input class="form-input" type="time"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">Expected Stay <span class="xs c4">(helps planning)</span></label><input class="form-input" placeholder="e.g. 2 days"></div>
+        <div class="fg"><label class="fg-label">Communication Preference</label><select class="form-select"><option>WhatsApp</option><option>Email</option></select></div>
+      </div>
+      <div class="fg"><label class="fg-label">Special Instructions for Delivery Partner</label><textarea class="form-input" placeholder="Any delivery notes for the partner…" style="height:64px"></textarea></div>
+      <div class="sec-label mt16">Pricing</div>
+      <div class="form-row" style="margin-bottom:0">
+        <div class="fg"><label class="fg-label">Estimated Price ($)</label><input class="form-input" type="number" id="srq-price" placeholder="Enter estimated price set by admin"></div>
+        <div class="fg"></div>
+      </div>
     `,
     footer: `
       <button class="btn btn-danger" onclick="closeModal();toast('Request rejected and sailor notified','danger','x')"><i class="ti ti-x"></i>Reject</button>
-      <button class="btn btn-secondary" onclick="closeModal();toast('Marked as sourcing — sailor notified','info','truck-loading')"><i class="ti ti-truck-loading"></i>Mark Sourcing</button>
-      <button class="btn btn-primary" onclick="closeModal();toast('Request approved &amp; added to catalog','success','check')"><i class="ti ti-check"></i>Approve</button>
+      <button class="btn btn-primary" onclick="closeModal();toast('Payment link sent to sailor','success','send')"><i class="ti ti-send"></i>Confirm &amp; Send Payment Link</button>
     `
   });
 }
+
+/* ─── SPECIAL REQUEST CANCELLATION ─── */
+PAGES.cancellation = function(c) {
+  var ORDER_VALUES = { '#AM2458':'$84.00','#AM2461':'$70.45','#AM2463':'$48.00','#AM2465':'$94.99','#AM2466':'$120.00','#AM2467':'$32.00','#AM2451':'$67.00' };
+  c.innerHTML = `
+  <div class="pg-header">
+    <div class="pg-header-l"><h1 class="pg-title">Special Request Cancellation</h1><p class="pg-sub"><span>Process cancellations and issue refunds to customers</span></p></div>
+  </div>
+  <div class="grid-2" style="grid-template-columns:1fr 1fr;align-items:start">
+    <div class="card">
+      <div class="card-hd"><div class="card-ttl"><i class="ti ti-receipt-refund"></i>Cancel &amp; Refund</div></div>
+      <div class="card-body">
+        <div class="fg"><label class="fg-label">Order ID</label><input class="form-input" id="canc-orderid" list="canc-orders" placeholder="e.g. #AM2458" autocomplete="off"><datalist id="canc-orders">${Object.keys(ORDER_VALUES).map(function(o){return '<option value="'+o+'"></option>';}).join('')}</datalist><div class="fg-hint">Enter the order ID to auto-load its value</div></div>
+        <div class="fg"><label class="fg-label">Order Value</label><div class="ecard" id="canc-ordervalue" style="font-weight:700;color:var(--t1)">—</div></div>
+        <div class="fg"><label class="fg-label">Refund to Customer ($)</label><input class="form-input" id="canc-refund" type="number" placeholder="Enter refund amount"></div>
+        <div class="flex" style="justify-content:flex-end"><button class="btn btn-primary" id="canc-save"><i class="ti ti-send"></i>Save and Notify</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-ttl"><i class="ti ti-history"></i>Recent Cancellations</div><span class="badge badge-warning">3 pending</span></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Order ID</th><th>Order Value</th><th>Refund</th><th>Status</th></tr></thead><tbody id="canc-list"></tbody></table></div>
+    </div>
+  </div>`;
+
+  var recent = [
+    {o:'#AM2451',v:'$67.00',r:'$67.00',s:'Refunded',sc:'success'},
+    {o:'#AM2466',v:'$120.00',r:'$90.00',s:'Pending',sc:'warning'},
+    {o:'#AM2467',v:'$32.00',r:'$32.00',s:'Pending',sc:'warning'},
+  ];
+  document.getElementById('canc-list').innerHTML = recent.map(function(x){
+    return '<tr><td class="td-id">'+x.o+'</td><td class="td-p">'+x.v+'</td><td class="td-p w7">'+x.r+'</td><td><span class="badge badge-'+x.sc+'">'+x.s+'</span></td></tr>';
+  }).join('');
+
+  function loadValue() {
+    var id = document.getElementById('canc-orderid').value.trim();
+    document.getElementById('canc-ordervalue').textContent = ORDER_VALUES[id] || '—';
+  }
+  document.getElementById('canc-orderid').oninput = loadValue;
+  document.getElementById('canc-save').onclick = function() {
+    var id = document.getElementById('canc-orderid').value.trim();
+    var refund = document.getElementById('canc-refund').value.trim();
+    if (!id) { toast('Enter an order ID', 'warning'); return; }
+    if (!ORDER_VALUES[id]) { toast('Order not found', 'warning'); return; }
+    if (!refund) { toast('Enter a refund amount', 'warning'); return; }
+    toast('Cancellation saved — customer notified of $' + refund + ' refund', 'success', 'send');
+  };
+};
 
 /* ─── PRODUCTS ─── */
 function showProdPane(el, pane) {
@@ -3274,6 +3461,8 @@ PAGES.products = function(c) {
     <div class="stat-card sc-navy"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Total Products</div><div class="stat-icon"><i class="ti ti-box-seam"></i></div></div><div class="stat-val">1,284</div><div class="stat-foot"><span>12 categories</span></div></div>
     <div class="stat-card sc-teal"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Total Categories</div><div class="stat-icon"><i class="ti ti-category"></i></div></div><div class="stat-val">12</div><div class="stat-foot"><span>Across catalog</span></div></div>
     <div class="stat-card sc-amber"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Featured / Deals</div><div class="stat-icon"><i class="ti ti-star"></i></div></div><div class="stat-val">48</div><div class="stat-foot"><span>Active promotions</span></div></div>
+    <div class="stat-card sc-green"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Express Products</div><div class="stat-icon"><i class="ti ti-bolt"></i></div></div><div class="stat-val">124</div><div class="stat-foot"><span>Fast-delivery items</span></div></div>
+    <div class="stat-card sc-red"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Marine Emergency Spares</div><div class="stat-icon"><i class="ti ti-engine"></i></div></div><div class="stat-val">86</div><div class="stat-foot"><span>Critical spare parts</span></div></div>
   </div>
   <div class="tab-row">
     <div class="tab-item active" onclick="showProdPane(this,'products')">All Products</div>
@@ -3310,32 +3499,47 @@ PAGES.products = function(c) {
     {ic:'ti-tool',n:'Bombay Shaving Kit 5 Piece',d:'Complete grooming kit',c:'Beauty',p:'$18.00',sk:56,so:'200+',r:4.4,f:false,s:'Active',sc:'success'},
   ];
 
-  var rows = prods.map(function(p) {
+  function productRow(p) {
     var feat = p.f ? '<span class="badge badge-amber"><i class="ti ti-star"></i>Yes</span>' : '<span class="td-m">—</span>';
     return '<tr class="tr-click">' +
-      '<td><div class="prod-thumb"><i class="ti '+p.ic+'"></i></div></td>' +
+      '<td>'+prodImg()+'</td>' +
       '<td><div class="td-p">'+p.n+'</div><div class="td-m">'+p.d+'</div></td>' +
       '<td><span class="badge badge-navy">'+p.c+'</span></td>' +
       '<td class="td-p w7">'+p.p+'</td>' +
       '<td>'+feat+'</td>' +
-      '<td><span class="badge badge-'+p.sc+'">'+p.s+'</span></td>' +
       '<td><div class="td-acts">' +
         '<button class="btn btn-ghost btn-sm btn-icon" data-action="edit" title="Edit"><i class="ti ti-edit"></i></button>' +
-        '<button class="btn btn-ghost btn-sm btn-icon" data-action="feat" title="Toggle featured"><i class="ti ti-star"></i></button>' +
         '<button class="btn btn-danger btn-sm btn-icon" data-action="del" title="Remove"><i class="ti ti-trash"></i></button>' +
       '</div></td></tr>';
-  }).join('');
+  }
 
-  document.getElementById('products-table').innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th></th><th>Product</th><th>Category</th><th>Price</th><th>Featured</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  var prodCat = 'All', prodStatus = 'All', prodQuery = '';
+  function renderProducts() {
+    var list = prods.filter(function(p) {
+      var okC = prodCat === 'All' || p.c === prodCat;
+      var okS = prodStatus === 'All' || p.s === prodStatus;
+      var okQ = !prodQuery || (p.n + ' ' + p.d + ' ' + p.c).toLowerCase().indexOf(prodQuery) >= 0;
+      return okC && okS && okQ;
+    });
+    document.getElementById('products-table').innerHTML =
+      '<div class="tbl-wrap"><table><thead><tr><th></th><th>Product</th><th>Category</th><th>Price</th><th>Featured</th><th>Actions</th></tr></thead><tbody>' +
+      (list.length ? list.map(productRow).join('') : '<tr><td colspan="6" class="td-m" style="text-align:center;padding:28px">No products match this filter.</td></tr>') +
+      '</tbody></table></div>';
+    document.getElementById('products-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
+      var p = list[i]; if (!p) return;
+      tr.onclick = function() { modalAddProduct({name:p.n, desc:p.d, price:p.p.replace('$',''), stock:String(p.sk), featured:p.f}); };
+      tr.querySelector('[data-action="edit"]').onclick = function(e){ e.stopPropagation(); modalAddProduct({name:p.n, desc:p.d, price:p.p.replace('$',''), stock:String(p.sk), featured:p.f}); };
+      tr.querySelector('[data-action="del"]').onclick  = function(e){ e.stopPropagation(); showConfirm({title:'Remove Product', msg:'Remove "'+p.n+'"? Cannot be undone.', danger:true, confirmText:'Remove'}, function(){ toast('Product removed', 'danger', 'trash'); }); };
+    });
+  }
+  renderProducts();
 
-  document.getElementById('products-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
-    var p = prods[i];
-    tr.onclick = function() { modalAddProduct({name:p.n, desc:p.d, price:p.p.replace('$',''), stock:String(p.sk), featured:p.f}); };
-    tr.querySelector('[data-action="edit"]').onclick = function(e){ e.stopPropagation(); modalAddProduct({name:p.n, desc:p.d, price:p.p.replace('$',''), stock:String(p.sk), featured:p.f}); };
-    tr.querySelector('[data-action="feat"]').onclick = function(e){ e.stopPropagation(); toast((p.f ? 'Removed from' : 'Added to') + ' featured', '', 'star'); };
-    tr.querySelector('[data-action="del"]').onclick  = function(e){ e.stopPropagation(); showConfirm({title:'Remove Product', msg:'Remove "'+p.n+'"? Cannot be undone.', danger:true, confirmText:'Remove'}, function(){ toast('Product removed', 'danger', 'trash'); }); };
-  });
+  var pcat = document.getElementById('prod-cat-filter');
+  if (pcat) pcat.onchange = function() { prodCat = this.value === 'All Categories' ? 'All' : this.value; renderProducts(); };
+  var pstat = c.querySelectorAll('.pg-actions .form-select')[1];
+  if (pstat) pstat.onchange = function() { prodStatus = this.value === 'All Status' ? 'All' : this.value; renderProducts(); };
+  var psearch = c.querySelector('.pg-actions .input-wrap input');
+  if (psearch) psearch.oninput = function() { prodQuery = this.value.toLowerCase().trim(); renderProducts(); };
 
   /* ── Category & subcategory management (shared PROD_CATEGORIES store) ── */
   function catNames() { return Object.keys(PROD_CATEGORIES); }
@@ -3405,8 +3609,8 @@ PAGES.spares = function(c) {
     <div class="pg-header-l"><h1 class="pg-title">Marine Emergency Spares</h1><p class="pg-sub"><span>Critical emergency spare parts available to sailors</span></p></div>
     <div class="pg-actions">
       <div class="input-wrap"><i class="ti ti-search pre"></i><input type="text" class="form-input has-icon" placeholder="Search spare parts…" style="width:200px"></div>
-      <select class="form-select"><option>All Types</option><option>Engine</option><option>Safety</option><option>Fire Safety</option><option>Navigation</option><option>Signaling</option><option>Medical</option><option>Deck</option></select>
-      <select class="form-select"><option>All Status</option><option>In Stock</option><option>Low Stock</option><option>Out of Stock</option></select>
+      <select class="form-select" id="spare-type-filter"><option>All Types</option><option>Engine</option><option>Safety</option><option>Fire Safety</option><option>Navigation</option><option>Signaling</option><option>Medical</option><option>Deck</option></select>
+      <select class="form-select" id="spare-status-filter"><option>All Status</option><option>In Stock</option><option>Low Stock</option><option>Out of Stock</option></select>
       <button class="btn btn-primary" onclick="modalAddSpare()"><i class="ti ti-plus"></i>Add Product</button>
     </div>
   </div>
@@ -3426,9 +3630,9 @@ PAGES.spares = function(c) {
     {ic:'ti-jacket',n:'Immersion / Survival Suit',d:'Insulated, one size, SOLAS',c:'Safety',pn:'SP-SAF-018',p:'$185.00',sk:0,s:'Out of Stock',sc:'danger'},
   ];
 
-  var rows = spares.map(function(p) {
+  function spareRow(p) {
     return '<tr class="tr-click">' +
-      '<td><div class="prod-thumb"><i class="ti '+p.ic+'"></i></div></td>' +
+      '<td>'+prodImg()+'</td>' +
       '<td><div class="td-p">'+p.n+'</div><div class="td-m">'+p.d+'</div></td>' +
       '<td><span class="badge badge-navy">'+p.c+'</span></td>' +
       '<td class="td-m mono">'+p.pn+'</td>' +
@@ -3438,17 +3642,34 @@ PAGES.spares = function(c) {
         '<button class="btn btn-ghost btn-sm btn-icon" data-action="edit" title="Edit"><i class="ti ti-edit"></i></button>' +
         '<button class="btn btn-danger btn-sm btn-icon" data-action="del" title="Remove"><i class="ti ti-trash"></i></button>' +
       '</div></td></tr>';
-  }).join('');
+  }
 
-  document.getElementById('spares-table').innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th></th><th>Spare Part</th><th>Type</th><th>Part No.</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
-
-  document.getElementById('spares-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
-    var p = spares[i];
-    tr.onclick = function() { modalAddSpare({name:p.n, desc:p.d, type:p.c, price:p.p.replace('$','').replace('€',''), stock:String(p.sk), pn:p.pn}); };
-    tr.querySelector('[data-action="edit"]').onclick = function(e){ e.stopPropagation(); modalAddSpare({name:p.n, desc:p.d, type:p.c, price:p.p.replace('$',''), stock:String(p.sk), pn:p.pn}); };
-    tr.querySelector('[data-action="del"]').onclick  = function(e){ e.stopPropagation(); showConfirm({title:'Remove Spare Part', msg:'Remove "'+p.n+'"? Cannot be undone.', danger:true, confirmText:'Remove'}, function(){ toast('Spare part removed', 'danger', 'trash'); }); };
-  });
+  var spareType = 'All', spareStatus = 'All', spareQuery = '';
+  function renderSpares() {
+    var list = spares.filter(function(p) {
+      var okT = spareType === 'All' || p.c === spareType;
+      var okS = spareStatus === 'All' || p.s === spareStatus;
+      var okQ = !spareQuery || (p.n + ' ' + p.d + ' ' + p.pn).toLowerCase().indexOf(spareQuery) >= 0;
+      return okT && okS && okQ;
+    });
+    document.getElementById('spares-table').innerHTML =
+      '<div class="tbl-wrap"><table><thead><tr><th></th><th>Spare Part</th><th>Type</th><th>Part No.</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>' +
+      (list.length ? list.map(spareRow).join('') : '<tr><td colspan="7" class="td-m" style="text-align:center;padding:28px">No spare parts match this filter.</td></tr>') +
+      '</tbody></table></div>';
+    document.getElementById('spares-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
+      var p = list[i]; if (!p) return;
+      tr.onclick = function() { modalAddSpare({name:p.n, desc:p.d, type:p.c, price:p.p.replace('$','').replace('€',''), stock:String(p.sk), pn:p.pn}); };
+      tr.querySelector('[data-action="edit"]').onclick = function(e){ e.stopPropagation(); modalAddSpare({name:p.n, desc:p.d, type:p.c, price:p.p.replace('$',''), stock:String(p.sk), pn:p.pn}); };
+      tr.querySelector('[data-action="del"]').onclick  = function(e){ e.stopPropagation(); showConfirm({title:'Remove Spare Part', msg:'Remove "'+p.n+'"? Cannot be undone.', danger:true, confirmText:'Remove'}, function(){ toast('Spare part removed', 'danger', 'trash'); }); };
+    });
+  }
+  renderSpares();
+  var stf = document.getElementById('spare-type-filter');
+  if (stf) stf.onchange = function() { spareType = this.value === 'All Types' ? 'All' : this.value; renderSpares(); };
+  var ssf = document.getElementById('spare-status-filter');
+  if (ssf) ssf.onchange = function() { spareStatus = this.value === 'All Status' ? 'All' : this.value; renderSpares(); };
+  var spsearch = c.querySelector('.pg-actions .input-wrap input');
+  if (spsearch) spsearch.oninput = function() { spareQuery = this.value.toLowerCase().trim(); renderSpares(); };
 };
 
 /* ── ADD / EDIT MARINE EMERGENCY SPARE MODAL ── */
@@ -3481,11 +3702,8 @@ function modalAddSpare(data) {
         </div>
         <img id="spare-img-preview" alt="preview" style="display:none;max-height:130px;width:auto;border-radius:var(--radius-md);margin-top:10px;border:1px solid var(--border-sm)">
       </div>
-      <div class="form-row">
+      <div class="form-row triple" style="margin-bottom:0">
         <label class="switch"><input type="checkbox" checked><div class="switch-track"></div><span class="switch-label">Available to Sailors</span></label>
-        <label class="switch"><input type="checkbox" ${data.critical?'checked':''}><div class="switch-track"></div><span class="switch-label">Critical / Mandatory Item</span></label>
-      </div>
-      <div class="form-row" style="margin-bottom:0">
         <label class="switch"><input type="checkbox" ${data.deal?'checked':''}><div class="switch-track"></div><span class="switch-label">Deal Product</span></label>
         <label class="switch"><input type="checkbox" ${data.express?'checked':''}><div class="switch-track"></div><span class="switch-label">Express Item</span></label>
       </div>
@@ -3514,7 +3732,7 @@ PAGES.express = function(c) {
   <div class="pg-header">
     <div class="pg-header-l"><h1 class="pg-title">Express Items</h1><p class="pg-sub"><span>Fast-delivery everyday essentials</span></p></div>
     <div class="pg-actions">
-      <button class="btn btn-primary" onclick="modalAddProduct()"><i class="ti ti-plus"></i>Add Express Item</button>
+      <button class="btn btn-primary" onclick="modalAddProduct({fromExpress:true})"><i class="ti ti-plus"></i>Add Express Item</button>
     </div>
   </div>
   <div class="card" id="express-table"></div>`;
@@ -3529,6 +3747,7 @@ PAGES.express = function(c) {
   ];
   var rows = items.map(function(e) {
     return '<tr class="tr-click">' +
+      '<td>'+prodImg()+'</td>' +
       '<td class="td-p">'+e.n+'</td><td><span class="tag">'+e.c+'</span></td>' +
       '<td class="td-p w7">'+e.p+'</td><td class="td-m">'+e.sz+'</td>' +
       '<td><span class="badge badge-'+(e.s==='Active'?'success':'danger')+'">'+e.s+'</span></td>' +
@@ -3539,12 +3758,12 @@ PAGES.express = function(c) {
   }).join('');
 
   document.getElementById('express-table').innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Size</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    '<div class="tbl-wrap"><table><thead><tr><th></th><th>Product</th><th>Category</th><th>Price</th><th>Size</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 
   document.getElementById('express-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
     var e = items[i];
-    tr.onclick = function() { modalAddProduct({name:e.n, price:e.p.replace('$',''), stock:String(e.sk)}); };
-    tr.querySelector('[data-action="edit"]').onclick = function(ev){ ev.stopPropagation(); modalAddProduct({name:e.n, price:e.p.replace('$',''), stock:String(e.sk)}); };
+    tr.onclick = function() { modalAddProduct({name:e.n, price:e.p.replace('$',''), stock:String(e.sk), fromExpress:true}); };
+    tr.querySelector('[data-action="edit"]').onclick = function(ev){ ev.stopPropagation(); modalAddProduct({name:e.n, price:e.p.replace('$',''), stock:String(e.sk), fromExpress:true}); };
     tr.querySelector('[data-action="del"]').onclick  = function(ev){ ev.stopPropagation(); showConfirm({title:'Remove Item', msg:'Remove '+e.n+'?', danger:true, confirmText:'Remove'}, function(){ toast('Item removed','danger','trash'); }); };
   });
 };
@@ -3638,10 +3857,6 @@ PAGES.partners = function(c) {
       <button class="btn btn-primary" onclick="modalAddPartner()"><i class="ti ti-user-plus"></i>Onboard Partner</button>
     </div>
   </div>
-  <div class="stats-row">
-    <div class="stat-card sc-navy"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Total Partners</div><div class="stat-icon"><i class="ti ti-users"></i></div></div><div class="stat-val">64</div><div class="stat-foot"><span>Across all ports</span></div></div>
-    <div class="stat-card sc-amber"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Active Deliveries</div><div class="stat-icon"><i class="ti ti-motorbike"></i></div></div><div class="stat-val">38</div><div class="stat-foot"><span>In progress</span></div></div>
-  </div>
   <div class="card" id="partners-table"></div>`;
 
   var partners = [
@@ -3652,42 +3867,53 @@ PAGES.partners = function(c) {
     {n:'David Lim',id:'DP-00033',p:'Jurong Port',j:'Nov 2022',s:'Inactive',c:0,w:'$0',t:52,r:'4.4'},
     {n:'Sari Wijaya',id:'DP-00145',p:'Keppel Terminal',j:'May 2023',s:'On Duty',c:2,w:'$58.00',t:67,r:'4.5'},
   ];
-  var rows = partners.map(function(d) {
+  function partnerRow(d) {
     return '<tr class="tr-click">' +
-      '<td><div class="flex aic g10"><div class="av av-teal">'+d.n[0]+'</div><div class="td-p">'+d.n+'</div></div></td>' +
+      '<td><div class="td-p">'+d.n+'</div></td>' +
       '<td class="td-id">'+d.id+'</td><td class="td-m">'+d.p+'</td><td class="td-m">'+d.j+'</td>' +
       '<td class="td-m">'+d.t+'</td>' +
       '<td><div class="td-acts">' +
-        '<button class="btn btn-ghost btn-sm btn-icon" data-action="view"><i class="ti ti-eye"></i></button>' +
-        '<button class="btn btn-ghost btn-sm btn-icon" data-action="msg"><i class="ti ti-message"></i></button>' +
-        '<button class="btn btn-ghost btn-sm btn-icon" data-action="edit"><i class="ti ti-edit"></i></button>' +
-        '<button class="btn btn-danger btn-sm btn-icon" data-action="deact"><i class="ti ti-user-off"></i></button>' +
+        '<button class="btn btn-ghost btn-sm btn-icon" data-action="view" title="View"><i class="ti ti-eye"></i></button>' +
+        '<button class="btn btn-ghost btn-sm btn-icon" data-action="edit" title="Edit"><i class="ti ti-edit"></i></button>' +
+        '<button class="btn btn-danger btn-sm btn-icon" data-action="deact" title="Deactivate"><i class="ti ti-user-off"></i></button>' +
       '</div></td></tr>';
-  }).join('');
+  }
 
-  document.getElementById('partners-table').innerHTML =
-    '<div class="tbl-wrap"><table><thead><tr><th>Partner</th><th>ID</th><th>Port Zone</th><th>Joined</th><th>Total Deliveries</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
-
-  document.getElementById('partners-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
-    var d = partners[i];
-    tr.onclick = function() { drawerProfile(d.n, 'partner'); };
-    tr.querySelector('[data-action="view"]').onclick  = function(e){ e.stopPropagation(); drawerProfile(d.n,'partner'); };
-    tr.querySelector('[data-action="msg"]').onclick   = function(e){ e.stopPropagation(); toast('Chat opened with '+d.n,'','message'); };
-    tr.querySelector('[data-action="edit"]').onclick  = function(e){ e.stopPropagation(); modalAddPartner({name:d.n,id:d.id}); };
-    tr.querySelector('[data-action="deact"]').onclick = function(e){ e.stopPropagation(); showConfirm({title:'Deactivate Partner',msg:'Deactivate '+d.n+'?',danger:true,confirmText:'Deactivate'},function(){toast(d.n+' deactivated','danger','user-off');}); };
-  });
+  var partnerStatus = 'All', partnerQuery = '';
+  function renderPartners() {
+    var list = partners.filter(function(d) {
+      var okS = partnerStatus === 'All' || d.s === partnerStatus;
+      var okQ = !partnerQuery || (d.n + ' ' + d.id + ' ' + d.p).toLowerCase().indexOf(partnerQuery) >= 0;
+      return okS && okQ;
+    });
+    document.getElementById('partners-table').innerHTML =
+      '<div class="tbl-wrap"><table><thead><tr><th>Partner</th><th>ID</th><th>Port Zone</th><th>Joined</th><th>Total Deliveries</th><th>Actions</th></tr></thead><tbody>' +
+      (list.length ? list.map(partnerRow).join('') : '<tr><td colspan="6" class="td-m" style="text-align:center;padding:28px">No partners match this filter.</td></tr>') +
+      '</tbody></table></div>';
+    document.getElementById('partners-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
+      var d = list[i]; if (!d) return;
+      tr.onclick = function() { drawerProfile(d.n, 'partner'); };
+      tr.querySelector('[data-action="view"]').onclick  = function(e){ e.stopPropagation(); drawerProfile(d.n,'partner'); };
+      tr.querySelector('[data-action="edit"]').onclick  = function(e){ e.stopPropagation(); modalAddPartner({name:d.n,id:d.id}); };
+      tr.querySelector('[data-action="deact"]').onclick = function(e){ e.stopPropagation(); showConfirm({title:'Deactivate Partner',msg:'Deactivate '+d.n+'?',danger:true,confirmText:'Deactivate'},function(){toast(d.n+' deactivated','danger','user-off');}); };
+    });
+  }
+  renderPartners();
+  var pf = c.querySelector('.pg-actions .form-select');
+  if (pf) pf.onchange = function() { partnerStatus = this.value === 'All Status' ? 'All' : this.value; renderPartners(); };
+  var psearch = c.querySelector('.pg-actions .input-wrap input');
+  if (psearch) psearch.oninput = function() { partnerQuery = this.value.toLowerCase().trim(); renderPartners(); };
 };
 
 PAGES.assignments = function(c) {
   c.innerHTML = `
   <div class="pg-header">
     <div class="pg-header-l"><h1 class="pg-title">Order Assignments</h1><p class="pg-sub"><span>Assign, reassign and monitor active delivery operations</span></p></div>
-    <div class="pg-actions"><button class="btn btn-primary btn-sm" onclick="modalAssignPartner('new')"><i class="ti ti-plus"></i>New Assignment</button></div>
   </div>
   <div class="grid-2" style="grid-template-columns:1.4fr 1fr">
     <div>
-      <div class="card mb16">
-        <div class="card-hd"><div class="card-ttl"><i class="ti ti-clipboard-list"></i>Active Assignments</div></div>
+      <div class="card">
+        <div class="card-hd"><div class="card-ttl"><i class="ti ti-clipboard-list"></i>Active Assignments</div><span class="sm c4 w6">Click a row to view live delivery steps</span></div>
         <div class="tbl-wrap">
           <table>
             <thead><tr><th>ENQ</th><th>Partner</th><th>Order</th><th>Deliver To</th><th>Status</th><th>ETA</th></tr></thead>
@@ -3695,34 +3921,11 @@ PAGES.assignments = function(c) {
           </table>
         </div>
       </div>
-      <div class="card">
-        <div class="card-hd"><div class="card-ttl"><i class="ti ti-route"></i>ENQ-0042 — Live Steps</div><span class="badge badge-teal">Delivering</span></div>
-        <div class="card-body">
-          <div class="dstep done"><div class="dstep-icon"><i class="ti ti-check"></i></div><div class="f1"><div class="sm w7 c1">Items verified at shop</div><div class="xs c4">2 available · 1 substituted · 10:04 AM</div></div><span class="badge badge-success">Done</span></div>
-          <div class="dstep done"><div class="dstep-icon"><i class="ti ti-currency-dollar"></i></div><div class="f1"><div class="sm w7 c1">Payment confirmed — $70.45</div><div class="xs c4">Via payment link · 10:52 AM</div></div><span class="badge badge-success">Done</span></div>
-          <div class="dstep active"><div class="dstep-icon"><i class="ti ti-package"></i></div><div class="f1"><div class="sm w7 c1">Items picked up from shop</div><div class="xs c4">Rahul Singh en route to Berth 7</div></div><span class="badge badge-warning">Active</span></div>
-          <div class="dstep pending"><div class="dstep-icon"><i class="ti ti-anchor"></i></div><div class="f1"><div class="sm w7 c1">Deliver to ship</div><div class="xs c4">Handover to Ali Mahmoud · Berth 7</div></div><span class="badge badge-neutral">Pending</span></div>
-          <div class="flex g8 mt16">
-            <button class="btn btn-secondary btn-sm" onclick="toast('Chat opened with Rahul','','message')"><i class="ti ti-message"></i>Chat Partner</button>
-            <button class="btn btn-accent btn-sm" onclick="toast('Sailor notified of ETA','success','bell')"><i class="ti ti-bell"></i>Notify Sailor</button>
-          </div>
-        </div>
-      </div>
     </div>
     <div>
-      <div class="card mb16">
+      <div class="card">
         <div class="card-hd"><div class="card-ttl"><i class="ti ti-alert-circle"></i>Unassigned Orders</div><span class="badge badge-danger">2 urgent</span></div>
         <div class="card-body-sm" id="unassigned-orders"></div>
-      </div>
-      <div class="card">
-        <div class="card-hd"><div class="card-ttl"><i class="ti ti-user-check"></i>Available Partners</div></div>
-        <div class="card-body-sm">
-          <div class="flex aic g10 mb14"><div class="av av-green" style="cursor:pointer" onclick="drawerProfile('Aisha Karimi','partner')">A</div><div class="f1"><div class="sm w7 c1">Aisha Karimi</div><div class="xs c4">DP-00056 · Singapore</div></div><span class="badge badge-success">Free</span><button class="btn btn-ghost btn-sm" onclick="modalAssignPartner('new')">Assign</button></div>
-          <div class="flex aic g10 mb14"><div class="av av-green" style="cursor:pointer" onclick="drawerProfile('David Lim','partner')">D</div><div class="f1"><div class="sm w7 c1">David Lim</div><div class="xs c4">DP-00033 · Jurong</div></div><span class="badge badge-success">Free</span><button class="btn btn-ghost btn-sm" onclick="modalAssignPartner('new')">Assign</button></div>
-          <div class="divider"></div>
-          <div class="sec-label mt12">Busy (can take more)</div>
-          <div class="flex aic g10"><div class="av av-teal" style="cursor:pointer" onclick="drawerProfile('Pita Havili','partner')">P</div><div class="f1"><div class="sm w7 c1">Pita Havili</div><div class="xs c4">DP-00087 · 2 active orders</div></div><span class="badge badge-warning">Busy</span><button class="btn btn-ghost btn-sm" onclick="modalAssignPartner('new')">Assign</button></div>
-        </div>
       </div>
     </div>
   </div>`;
@@ -3737,8 +3940,8 @@ PAGES.assignments = function(c) {
   assignments.forEach(function(a) {
     var tr = document.createElement('tr');
     tr.className = 'tr-click';
-    tr.innerHTML = '<td class="td-id">'+a.e+'</td><td><div class="flex aic g6"><div class="av av-sm av-teal">'+a.p[0]+'</div><span class="sm c1 w7">'+a.p.split(' ')[0]+'</span></div></td><td class="td-id xs">'+a.o+'</td><td class="td-m">'+a.d+'</td><td><span class="badge badge-'+a.sc+'">'+a.s+'</span></td><td class="td-m">'+a.t+'</td>';
-    tr.onclick = function() { drawerOrderDetail({id:a.o,sailor:'Sailor',ship:'0123456',terminal:'Berth 7',partner:a.p,payment:'Card · Paid',coupon:'—',total:'$70.00',status:a.s,items:[{name:'Items',qty:3,price:'$70.00'}]}); };
+    tr.innerHTML = '<td class="td-id">'+a.e+'</td><td><span class="sm c1 w7">'+a.p.split(' ')[0]+'</span></td><td class="td-id xs">'+a.o+'</td><td class="td-m">'+a.d+'</td><td><span class="badge badge-'+a.sc+'">'+a.s+'</span></td><td class="td-m">'+a.t+'</td>';
+    tr.onclick = function() { drawerOrderDetail({id:a.o,enq:a.e,sailor:'Lois Becket',ship:'IMO 0123456',terminal:a.d,partner:a.p,payment:'Card · Paid',coupon:'—',total:'$70.45',status:a.s,items:[{name:'Items',qty:3,price:'$70.45'}]}); };
     abody.appendChild(tr);
   });
 
@@ -3766,26 +3969,21 @@ PAGES.verification = function(c) {
   <div class="pg-header">
     <div class="pg-header-l"><h1 class="pg-title">Product Verifications</h1><p class="pg-sub"><span>Partner in-store checks, availability reports, substitutions</span></p></div>
   </div>
-  <div class="stats-row">
-    <div class="stat-card sc-navy"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">In Verification</div><div class="stat-icon"><i class="ti ti-checklist"></i></div></div><div class="stat-val">8</div><div class="stat-foot"><span>Currently active</span></div></div>
-    <div class="stat-card sc-green"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Verified Today</div><div class="stat-icon"><i class="ti ti-check"></i></div></div><div class="stat-val">34</div><div class="stat-foot"><span>Reports submitted</span></div></div>
-    <div class="stat-card sc-red"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Unavailable Items</div><div class="stat-icon"><i class="ti ti-x"></i></div></div><div class="stat-val">6</div><div class="stat-foot"><span>Action needed</span></div></div>
-    <div class="stat-card sc-amber"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Substitutions</div><div class="stat-icon"><i class="ti ti-refresh"></i></div></div><div class="stat-val">4</div><div class="stat-foot"><span>Awaiting approval</span></div></div>
-  </div>
   <div class="card" id="verif-table"></div>`;
 
   var verifs = [
-    {e:'ENQ-0042',p:'Rahul Singh',s:'Wegmans PSA',t:3,a:2,u:1,r:'Submitted',sc:'warning'},
-    {e:'ENQ-0047',p:'Pita Havili',s:'EuroSpar Keppel',t:5,a:5,u:0,r:'Submitted',sc:'success'},
-    {e:'ENQ-0039',p:'Marco Reyes',s:'Port Marine JNPT',t:2,a:2,u:0,r:'Submitted',sc:'success'},
-    {e:'ENQ-0051',p:'Rahul Singh',s:'Wegmans PSA',t:4,a:null,u:null,r:'In Progress',sc:'info'},
+    {intent:'#INT-0047',order:'#AM2461',p:'Rahul Singh',desc:'Power bank, protein bars, shaving kit',t:3,a:2,u:1,r:'Submitted',sc:'warning'},
+    {intent:'#INT-0051',order:'#AM2463',p:'Pita Havili',desc:'Galley provisions & toiletries',t:5,a:5,u:0,r:'Submitted',sc:'success'},
+    {intent:'#INT-0039',order:'#AM2458',p:'Marco Reyes',desc:'Watch, card holder',t:2,a:2,u:0,r:'Submitted',sc:'success'},
+    {intent:'#INT-0055',order:'#AM2467',p:'Rahul Singh',desc:'Headphones, charger, snacks',t:4,a:null,u:null,r:'In Progress',sc:'info'},
   ];
   var vRows = verifs.map(function(v) {
     var uc = v.u > 0 ? 'var(--danger-text)' : 'var(--t4)';
     return '<tr class="tr-click">' +
-      '<td class="td-id">'+v.e+'</td>' +
-      '<td><div class="flex aic g8"><div class="av av-sm av-teal">'+v.p[0]+'</div><span class="td-p">'+v.p.split(' ')[0]+'</span></div></td>' +
-      '<td class="td-m">'+v.s+'</td>' +
+      '<td class="td-id">'+v.intent+'</td>' +
+      '<td class="td-id">'+v.order+'</td>' +
+      '<td><span class="td-p">'+v.p.split(' ')[0]+'</span></td>' +
+      '<td><span class="sm c3 trunc" style="max-width:200px;display:block">'+v.desc+'</span></td>' +
       '<td class="td-p w7">'+v.t+'</td>' +
       '<td class="w7 csuccess">'+(v.a!==null?v.a:'—')+'</td>' +
       '<td class="w7" style="color:'+uc+'">'+(v.u!==null?v.u:'—')+'</td>' +
@@ -3796,11 +3994,11 @@ PAGES.verification = function(c) {
 
   document.getElementById('verif-table').innerHTML =
     '<div class="card-hd"><div class="card-ttl"><i class="ti ti-list-check"></i>Verification Reports</div></div>' +
-    '<div class="tbl-wrap"><table><thead><tr><th>ENQ</th><th>Partner</th><th>Shop</th><th>Total</th><th>Available</th><th>Unavailable</th><th>Status</th><th>Action</th></tr></thead><tbody>'+vRows+'</tbody></table></div>';
+    '<div class="tbl-wrap"><table><thead><tr><th>Intent ID</th><th>Order ID</th><th>Partner</th><th>Description</th><th>Total</th><th>Available</th><th>Unavailable</th><th>Status</th><th>Action</th></tr></thead><tbody>'+vRows+'</tbody></table></div>';
 
   document.getElementById('verif-table').querySelectorAll('tbody tr').forEach(function(tr, i) {
     var v = verifs[i];
-    tr.onclick = function() { modalItemDetail(v.e); };
+    tr.onclick = function() { modalItemDetail(v.intent); };
     var subBtn = tr.querySelector('[data-action="sub"]');
     if (subBtn) subBtn.onclick = function(e){ e.stopPropagation(); modalSubstitute('Bombay Shaving Kit'); };
   });
@@ -3815,7 +4013,7 @@ function modalItemDetail(enq) {
   ];
   var itemsHtml = itemsData.map(function(item) {
     var bc = item.sc === 'success' ? 'var(--success-icon)' : 'var(--danger-icon)';
-    return '<div class="ecard" style="border-left:3px solid '+bc+'"><div class="sm w7 c1 mb8">'+item.n+'</div><div class="flex aic g8 mb10"><span class="tag">'+item.q+'</span>'+(item.a!=='—'?'<span class="tag">'+item.a+'</span>':'')+'</div><div class="flex aic jb"><span class="badge badge-'+item.sc+'">'+item.st+'</span>'+(item.st==='Unavailable'?'<button class="btn btn-secondary btn-xs" onclick="modalSubstitute(\''+item.n+'\')">Find Alt</button>':'')+'</div></div>';
+    return '<div class="ecard" style="border-left:3px solid '+bc+'"><div class="flex aic g8 mb8">'+prodImg('sm')+'<div class="sm w7 c1">'+item.n+'</div></div><div class="flex aic g8 mb10"><span class="tag">'+item.q+'</span>'+(item.a!=='—'?'<span class="tag">'+item.a+'</span>':'')+'</div><div class="flex aic jb"><span class="badge badge-'+item.sc+'">'+item.st+'</span>'+(item.st==='Unavailable'?'<button class="btn btn-secondary btn-xs" onclick="modalSubstitute(\''+item.n+'\')">Find Alt</button>':'')+'</div></div>';
   }).join('');
   showModal({
     title: (enq||'ENQ-0042') + ' — Item Detail',
@@ -3823,8 +4021,32 @@ function modalItemDetail(enq) {
     icon: 'package', iconBg:'var(--navy-50)', iconColor:'var(--navy-600)',
     size: 'lg',
     body: '<div class="grid-3 g16">' + itemsHtml + '</div>',
-    footer: '<button class="btn btn-secondary" onclick="toast(\'PDF report downloaded\',\'success\',\'download\')"><i class="ti ti-download"></i>PDF Report</button>' +
-            '<button class="btn btn-primary" onclick="closeModal();toast(\'Sailor notified\',\'success\',\'send\')"><i class="ti ti-send"></i>Notify Sailor</button>'
+    footer: '<button class="btn btn-primary" onclick="modalNotifySailor(\'' + (enq||'') + '\')"><i class="ti ti-send"></i>Notify Sailor</button>'
+  });
+}
+
+/* ── NOTIFY SAILOR SCREEN (composed notification) ── */
+function modalNotifySailor(ref) {
+  showModal({
+    title: 'Notify Sailor',
+    sub: ref ? ('Regarding ' + ref) : 'Send an update to the sailor',
+    icon: 'bell', iconBg:'var(--teal-50)', iconColor:'var(--teal-600)',
+    size: 'md',
+    body: `
+      <div class="fg"><label class="fg-label">Sailor</label><input class="form-input" value="Lois Becket" readonly></div>
+      <div class="form-row">
+        <div class="fg"><label class="fg-label">Channel</label>
+          <select class="form-select" id="ns-channel"><option>WhatsApp</option><option>Email</option><option>Push Notification</option></select>
+        </div>
+        <div class="fg"><label class="fg-label">Priority</label>
+          <select class="form-select"><option>Normal</option><option>High</option></select>
+        </div>
+      </div>
+      <div class="fg"><label class="fg-label">Subject</label><input class="form-input" id="ns-subject" placeholder="e.g. Update on your order" value="Update on your verification report"></div>
+      <div class="fg" style="margin-bottom:0"><label class="fg-label">Message</label><textarea class="form-input" id="ns-msg" placeholder="Type your message to the sailor…" style="height:110px">Hi, your order has been verified in-store. 1 item is unavailable — please review the suggested substitute at your convenience.</textarea></div>
+    `,
+    footer: '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+            '<button class="btn btn-primary" onclick="var ch=document.getElementById(\'ns-channel\').value;closeModal();toast(\'Sailor notified via \'+ch,\'success\',\'send\')"><i class="ti ti-send"></i>Send Notification</button>'
   });
 }
 
@@ -3983,13 +4205,13 @@ PAGES.support = function(c) {
   c.innerHTML = `
   <div class="pg-header">
     <div class="pg-header-l"><h1 class="pg-title">Support & Activity</h1><p class="pg-sub"><span>Tickets · delivery issues · activity logs</span></p></div>
-    <div class="pg-actions"><button class="btn btn-primary btn-sm" onclick="modalTicket()"><i class="ti ti-plus"></i>New Ticket</button></div>
+    <div class="pg-actions"><button class="btn btn-primary btn-sm" onclick="modalNewTicket()"><i class="ti ti-plus"></i>New Ticket</button></div>
   </div>
   <div class="stats-row">
     <div class="stat-card sc-red"><div class="stat-stripe"></div><div class="stat-top"><div class="stat-lbl">Open Tickets</div><div class="stat-icon"><i class="ti ti-lifebuoy"></i></div></div><div class="stat-val">18</div><div class="stat-foot"><span>4 urgent</span></div></div>
   </div>
   <div class="card">
-    <div class="card-hd"><div class="card-ttl"><i class="ti ti-lifebuoy"></i>Open Tickets</div><button class="btn btn-primary btn-sm" onclick="modalTicket()"><i class="ti ti-plus"></i>New</button></div>
+    <div class="card-hd"><div class="card-ttl"><i class="ti ti-lifebuoy"></i>Open Tickets</div></div>
     <div class="tbl-wrap">
       <table><thead><tr><th>Ticket</th><th>From</th><th>Issue</th><th>Action</th></tr></thead><tbody id="tickets-body"></tbody></table>
     </div>
